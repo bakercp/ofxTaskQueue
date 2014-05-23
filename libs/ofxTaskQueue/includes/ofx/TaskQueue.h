@@ -146,7 +146,7 @@ public:
     /// can be adjusted by modifying their referenced thread pool directly.
     ///
     /// \returns the maximum number of tasks or UNLIMITED_TASKS.
-    std::size_t getMaximumTasks() const;
+    int getMaximumTasks() const;
 
     /// \brief Set the maximum number of tasks.
     ///
@@ -163,7 +163,7 @@ public:
     /// For unlimited tasks, pass UNLIMITED_TASKS
     ///
     /// \param maximumTasks The maximum number of active tasks.
-    void setMaximumTasks(std::size_t maximumTasks);
+    void setMaximumTasks(int maximumTasks);
 
     /// \brief Register event listeners.
     /// \tparam ListenerClass The class type with the required callback methods.
@@ -183,7 +183,7 @@ public:
     enum
     {
         /// \brief An enumeration describing the maximum number of tasks.
-        UNLIMITED_TASKS = 0
+        UNLIMITED_TASKS = -1
     };
 
 protected:
@@ -250,7 +250,7 @@ private:
     /// \brief The maximum number of simultaneous tasks.
     ///
     /// This number may also limited by the maximum size of the thread pool.
-    std::size_t _maximumTasks;
+    int _maximumTasks;
 
 };
 
@@ -315,7 +315,7 @@ void TaskQueue_<DataType>::update(ofEventArgs& args)
     {
         try
         {
-            if (_maximumTasks != (std::size_t)UNLIMITED_TASKS &&
+            if (_maximumTasks != UNLIMITED_TASKS &&
                 _taskManager.count() > _maximumTasks)
             {
                 throw Poco::Exception("Maximum tasks exceeded.");
@@ -684,14 +684,14 @@ std::size_t TaskQueue_<DataType>::getCount() const
 
 
 template<typename DataType>
-std::size_t TaskQueue_<DataType>::getMaximumTasks() const
+int TaskQueue_<DataType>::getMaximumTasks() const
 {
     return _maximumTasks;
 }
 
 
 template<typename DataType>
-void TaskQueue_<DataType>::setMaximumTasks(std::size_t maximumTasks)
+void TaskQueue_<DataType>::setMaximumTasks(int maximumTasks)
 {
     _maximumTasks = maximumTasks;
 }
