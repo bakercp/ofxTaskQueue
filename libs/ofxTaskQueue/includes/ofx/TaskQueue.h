@@ -315,7 +315,7 @@ void TaskQueue_<DataType>::update(ofEventArgs& args)
     {
         try
         {
-            if (_maximumTasks != UNLIMITED_TASKS &&
+            if (_maximumTasks != (std::size_t)UNLIMITED_TASKS &&
                 _taskManager.count() > _maximumTasks)
             {
                 throw Poco::Exception("Maximum tasks exceeded.");
