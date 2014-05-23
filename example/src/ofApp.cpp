@@ -79,7 +79,7 @@ void ofApp::draw()
 
     while (iter != tasks.end())
     {
-        TaskProgress& t = (*iter).second;
+        TaskProgress& t = iter->second;
 
         t.height = height;
         t.width = ofGetWidth();
@@ -97,29 +97,9 @@ void ofApp::draw()
 
 void ofApp::keyPressed(int key)
 {
-    if ('s' == key)
-    {
-        // Sort queued tasks.
-    }
-    else if ('c' == key)
+    if ('c' == key)
     {
         queue.cancelAll();
-    }
-    else if (' ' == key)
-    {
-        std::map<Poco::UUID, TaskProgress>::iterator iter = tasks.begin();
-
-        while (iter != tasks.end())
-        {
-            if (iter->second.progress < 0)
-            {
-                tasks.erase(iter++); // If it was started, then remove.
-            }
-            else
-            {
-                ++iter;
-            }
-        }
     }
 }
 
