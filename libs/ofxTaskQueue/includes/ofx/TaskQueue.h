@@ -315,10 +315,18 @@ void TaskQueue_<DataType>::update(ofEventArgs& args)
     {
         try
         {
-            // We duplicate the task in order to share ownership and
-            // preserve our own pointer references for taskId lookup etc.
-            _taskManager.start((*iter).duplicate());
-            _queuedTasks.erase(iter++); // If it was started, then remove.
+            if (_maximumTasks != UNLIMITED_TASKS &&
+                _taskManager.count() > _maximumTasks)
+            {
+                throw Poco::Exception("Maximum tasks exceeded.");
+            }
+            else
+            {
+                // We duplicate the task in order to share ownership and
+                // preserve our own pointer references for taskId lookup etc.
+                _taskManager.start((*iter).duplicate());
+                _queuedTasks.erase(iter++); // If it was started, then remove.
+            }
         }
         catch (const Poco::Exception& exc)
         {
