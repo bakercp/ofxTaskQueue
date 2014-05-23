@@ -32,8 +32,8 @@ int CountingTask::i = 0;
 
 
 CountingTask::CountingTask(const std::string& name, float target):
-    _i(++i),
     Poco::Task(name),
+    _i(++i),
     _targetNumber(target),
     _currentNumber(0)
 {
@@ -42,7 +42,6 @@ CountingTask::CountingTask(const std::string& name, float target):
 
 CountingTask::~CountingTask()
 {
-//    std::cout << "COUNTING TASK DESTROYED = (ID=" << _i << ")" << std::endl;
 }
 
 
