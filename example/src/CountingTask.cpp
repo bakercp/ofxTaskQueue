@@ -32,10 +32,10 @@ int CountingTask::i = 0;
 
 
 CountingTask::CountingTask(const std::string& name, float target):
+    _i(++i),
     Poco::Task(name),
     _targetNumber(target),
-    _currentNumber(0),
-    _i(++i)
+    _currentNumber(0)
 {
 }
 
