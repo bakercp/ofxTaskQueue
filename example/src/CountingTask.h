@@ -41,9 +41,7 @@ public:
 
 private:
     static int i;
-
     int _i;
-
     float _targetNumber;
     float _currentNumber;
 
