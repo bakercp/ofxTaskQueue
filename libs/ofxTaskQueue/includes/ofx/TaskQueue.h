@@ -82,11 +82,11 @@ public:
     /// \brief Create a TaskQueue using the default ThreadPool.
     ///
     /// To modifiy the thread pool parameters, call
-    TaskQueue_(std::size_t maximumTasks = UNLIMITED_TASKS);
+    TaskQueue_(int maximumTasks = UNLIMITED_TASKS);
 
     /// \brief Create a TaskQueue using provided the default ThreadPool.
     /// \param threadPool The backing Poco::ThreadPool.
-    TaskQueue_(std::size_t maximumTasks, Poco::ThreadPool& threadPool);
+    TaskQueue_(int maximumTasks, Poco::ThreadPool& threadPool);
 
     /// \brief Destroy the TaskQueue.
     virtual ~TaskQueue_();
@@ -228,6 +228,11 @@ private:
     ///  The underlying NotificationQueue will take ownership of the pointer.
     void onNotification(Poco::TaskNotification* pNf);
 
+    /// \brief The maximum number of simultaneous tasks.
+    ///
+    /// This number may also limited by the maximum size of the thread pool.
+    int _maximumTasks;
+
     /// \brief A map of the taskId to the Task pointer.
     IdTaskMap _idTaskMap;
 
@@ -247,11 +252,6 @@ private:
     /// \brief The TaskManager is responsible for executing tasks in a thread.
     Poco::TaskManager _taskManager;
 
-    /// \brief The maximum number of simultaneous tasks.
-    ///
-    /// This number may also limited by the maximum size of the thread pool.
-    int _maximumTasks;
-
 };
 
 /// \brief
@@ -259,9 +259,9 @@ typedef TaskQueue_<std::string> TaskQueue;
 
 
 template<typename DataType>
-TaskQueue_<DataType>::TaskQueue_(std::size_t maximumTasks):
-    _taskManager(Poco::ThreadPool::defaultPool()),
-    _maximumTasks(maximumTasks)
+TaskQueue_<DataType>::TaskQueue_(int maximumTasks):
+    _maximumTasks(maximumTasks),
+    _taskManager(Poco::ThreadPool::defaultPool())
 {
     // Add the ofEvent().update listener.
     ofAddListener(ofEvents().update,
@@ -276,10 +276,10 @@ TaskQueue_<DataType>::TaskQueue_(std::size_t maximumTasks):
 
 
 template<typename DataType>
-TaskQueue_<DataType>::TaskQueue_(std::size_t maximumTasks,
+TaskQueue_<DataType>::TaskQueue_(int maximumTasks,
                                  Poco::ThreadPool& pool):
-    _taskManager(pool),
-    _maximumTasks(maximumTasks)
+    _maximumTasks(maximumTasks),
+    _taskManager(pool)
 {
     // Add the ofEvent().update listener.
     ofAddListener(ofEvents().update, this, &TaskQueue_<DataType>::update, OF_EVENT_ORDER_APP);
