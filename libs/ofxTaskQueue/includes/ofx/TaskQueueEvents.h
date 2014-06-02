@@ -40,8 +40,10 @@ class BaseTaskEventArgs: public ofEventArgs
 {
 public:
     /// \brief Create a BaseTaskEventArgs.
-    /// \param taskId The unique task id for the referenced task.
-    BaseTaskEventArgs(const Poco::UUID& taskId);
+    /// \param taskId The unique task id for the referenced Task.
+    /// \param taskName The name of the referenced Task;
+    BaseTaskEventArgs(const Poco::UUID& taskId,
+                      const std::string& taskName);
 
     /// \brief Destroy the BaseTaskEventArgs.
     virtual ~BaseTaskEventArgs();
@@ -50,9 +52,16 @@ public:
     /// \returns the task id.
     const Poco::UUID& getTaskId() const;
 
+    /// \brief Get the task name.
+    /// \returns the task name.
+    const std::string& getTaskName() const;
+
 protected:
     /// \brief The unique task id for the referenced task.
     const Poco::UUID& _taskId;
+
+    /// \brief The name of the given task.
+    const std::string& _taskName;
 
 };
 
@@ -67,9 +76,11 @@ class TaskFailedEventArgs: public BaseTaskEventArgs
 {
 public:
     /// \brief Create a TaskFailedEventArgs.
-    /// \param taskId The unique task id for the referenced task.
+    /// \param taskId The unique task id for the referenced Task.
+    /// \param taskName The name of the referenced Task;
     /// \param exception The exception that caused the Task failure.
     TaskFailedEventArgs(const Poco::UUID& taskId,
+                        const std::string& taskName,
                         const Poco::Exception& exception);
 
     /// \brief Destroy the TaskFailedEventArgs.
@@ -92,8 +103,11 @@ class TaskProgressEventArgs: public BaseTaskEventArgs
 public:
     /// \brief Create a TaskProgressEventArgs.
     /// \param taskId The unique task id for the referenced task.
+    /// \param taskName The name of the referenced Task;
     /// \param progress The current progress (0.0 - 1.0).
-    TaskProgressEventArgs(const Poco::UUID& taskId, float progress);
+    TaskProgressEventArgs(const Poco::UUID& taskId,
+                          const std::string& taskName,
+                          float progress);
 
     /// \brief Destroy the TaskProgressEventArgs.
     virtual ~TaskProgressEventArgs();
@@ -121,8 +135,9 @@ public:
     /// \param taskId The unique task id for the referenced task.
     /// \param data The custom event data.
     TaskDataEventArgs(const Poco::UUID& taskId,
+                      const std::string& taskName,
                       const DataType& data):
-        BaseTaskEventArgs(taskId),
+        BaseTaskEventArgs(taskId, taskName),
         _data(data)
     {
     }

@@ -121,6 +121,11 @@ public:
     /// \brief Request cancellation of all tasks, both queued and active.
     void cancelAll();
 
+    /// \brief Get the name of a given task.
+    /// \param taskId The id of the desired task.
+    /// \returns A string with the task name.
+    std::string getTaskName(const Poco::UUID& taskId) const;
+
     /// \brief Waits for all active threads in the thread pool to complete.
     ///
     /// joinAll() will wait for ALL tasks in the TaskQueu's Poco::ThreadPool to
@@ -498,6 +503,21 @@ void TaskQueue_<DataType>::cancelAll()
 
 
 template<typename DataType>
+std::string TaskQueue_<DataType>::getTaskName(const Poco::UUID& taskId) const
+{
+    if (Poco::AutoPtr<Poco::Task> ptr = getTaskPtr(taskId))
+    {
+        return ptr->name();
+    }
+    else
+    {
+        // We already log a warning in getTaskPtr() in this case.
+        return "";
+    }
+}
+
+
+template<typename DataType>
 void TaskQueue_<DataType>::onNotification(Poco::TaskNotification* pNf)
 {
     // TODO: This is a hack because TaskManager::postNotification() breaks
@@ -523,7 +543,7 @@ void TaskQueue_<DataType>::handleUserNotification(Poco::AutoPtr<Poco::TaskNotifi
 
     if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
     {
-        TaskDataEventArgs<DataType> args(taskId, taskData->custom());
+        TaskDataEventArgs<DataType> args(taskId, task->task()->name(), taskData->custom());
         ofNotifyEvent(events.onTaskData, args, this);
     }
     else
@@ -554,17 +574,17 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
 
             if (!(taskStarted = task.cast<Poco::TaskStartedNotification>()).isNull())
             {
-                TaskStartedEventArgs args(taskId);
+                TaskStartedEventArgs args(taskId, task->task()->name());
                 ofNotifyEvent(events.onTaskStarted, args, this);
             }
             else if (!(taskCancelled = task.cast<Poco::TaskCancelledNotification>()).isNull())
             {
-                TaskCancelledEventArgs args(taskId);
+                TaskCancelledEventArgs args(taskId, task->task()->name());
                 ofNotifyEvent(events.onTaskCancelled, args, this);
             }
             else if (!(taskFinished = task.cast<Poco::TaskFinishedNotification>()).isNull())
             {
-                TaskFinishedEventArgs args(taskId);
+                TaskFinishedEventArgs args(taskId, task->task()->name());
                 ofNotifyEvent(events.onTaskFinished, args, this);
 
                 IdTaskMap::iterator iterForward = _idTaskMap.find(taskId);
@@ -591,22 +611,17 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
             }
             else if (!(taskFailed = task.cast<Poco::TaskFailedNotification>()).isNull())
             {
-                TaskFailedEventArgs args(taskId, taskFailed->reason());
+                TaskFailedEventArgs args(taskId, task->task()->name(), taskFailed->reason());
                 ofNotifyEvent(events.onTaskFailed, args, this);
             }
             else if (!(taskProgress = task.cast<Poco::TaskProgressNotification>()).isNull())
             {
-                TaskProgressEventArgs args(taskId, taskProgress->progress());
-                ofNotifyEvent(events.onTaskProgress, args, this);
-            }
-            else if (!(taskProgress = task.cast<Poco::TaskProgressNotification>()).isNull())
-            {
-                TaskProgressEventArgs args(taskId, taskProgress->progress());
+                TaskProgressEventArgs args(taskId, task->task()->name(), taskProgress->progress());
                 ofNotifyEvent(events.onTaskProgress, args, this);
             }
             else if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
             {
-                TaskDataEventArgs<DataType> args(taskId, taskData->custom());
+                TaskDataEventArgs<DataType> args(taskId, task->task()->name(), taskData->custom());
                 ofNotifyEvent(events.onTaskData, args, this);
             }
             else
@@ -767,9 +782,9 @@ Poco::UUID TaskQueue_<DataType>::generateUniqueTaskId(std::size_t& tryCount) con
 
 
 template<typename DataType>
-Poco::AutoPtr<Poco::Task> TaskQueue_<DataType>::getTaskPtr(const Poco::UUID& uuid) const
+Poco::AutoPtr<Poco::Task> TaskQueue_<DataType>::getTaskPtr(const Poco::UUID& taskId) const
 {
-    IdTaskMap::const_iterator iter = _idTaskMap.find(uuid);
+    IdTaskMap::const_iterator iter = _idTaskMap.find(taskId);
     
     if (iter != _idTaskMap.end())
     {
@@ -777,6 +792,7 @@ Poco::AutoPtr<Poco::Task> TaskQueue_<DataType>::getTaskPtr(const Poco::UUID& uui
     }
     else
     {
+        ofLogWarning("TaskQueue_<DataType>::getTaskPtr") << "No task with id: " << taskId.toString();
         return 0;
     }
 }

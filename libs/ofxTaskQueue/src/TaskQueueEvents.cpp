@@ -29,8 +29,10 @@
 namespace ofx {
 
 
-BaseTaskEventArgs::BaseTaskEventArgs(const Poco::UUID& taskId):
-    _taskId(taskId)
+BaseTaskEventArgs::BaseTaskEventArgs(const Poco::UUID& taskId,
+                                     const std::string& taskName):
+    _taskId(taskId),
+    _taskName(taskName)
 {
 }
 
@@ -46,9 +48,16 @@ const Poco::UUID& BaseTaskEventArgs::getTaskId() const
 }
 
 
+const std::string& BaseTaskEventArgs::getTaskName() const
+{
+    return _taskName;
+}
+
+
 TaskFailedEventArgs::TaskFailedEventArgs(const Poco::UUID& taskId,
+                                         const std::string& taskName,
                                          const Poco::Exception& exception):
-    BaseTaskEventArgs(taskId),
+    BaseTaskEventArgs(taskId, taskName),
     _exception(exception)
 {
 }
@@ -66,8 +75,9 @@ const Poco::Exception& TaskFailedEventArgs::getException() const
 
 
 TaskProgressEventArgs::TaskProgressEventArgs(const Poco::UUID& taskId,
+                                             const std::string& taskName,
                                              float progress):
-    BaseTaskEventArgs(taskId),
+    BaseTaskEventArgs(taskId, taskName),
     _progress(progress)
 {
 }
