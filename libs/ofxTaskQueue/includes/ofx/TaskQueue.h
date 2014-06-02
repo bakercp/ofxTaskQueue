@@ -318,9 +318,6 @@ TaskQueue_<DataType>::TaskQueue_(int maximumTasks,
 template<typename DataType>
 TaskQueue_<DataType>::~TaskQueue_()
 {
-    // Remove this class as a TaskManager notification observer.
-    _taskManager.removeObserver(TaskQueueObserver(*this, &TaskQueue_<DataType>::onNotification));
-
     // Remove the ofEvent().update listener.
     ofRemoveListener(ofEvents().update, this, &TaskQueue_<DataType>::update, OF_EVENT_ORDER_APP);
 
@@ -329,6 +326,9 @@ TaskQueue_<DataType>::~TaskQueue_()
 
     // Wait for all tasks to complete.
     _taskManager.joinAll();
+
+    // Remove this class as a TaskManager notification observer.
+    _taskManager.removeObserver(TaskQueueObserver(*this, &TaskQueue_<DataType>::onNotification));
 }
 
 template<typename DataType>
