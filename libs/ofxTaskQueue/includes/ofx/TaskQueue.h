@@ -75,6 +75,10 @@ namespace ofx {
 /// when creating the TaskQueue_.  This can be a base class.  The user is
 /// responsible for handling special subclass behaviors.
 ///
+/// Additionally, by overriding handleUserNotifications and adding additional
+/// events that extend BaseTaskEventArgs (just as TaskDataEventArgs currently
+/// does), users can handle an unlimited number of custom data types.
+///
 /// \tparam DataType defines the custom data type to be sent with notifications.
 template<typename DataType>
 class TaskQueue_
