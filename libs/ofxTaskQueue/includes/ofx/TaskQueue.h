@@ -61,6 +61,13 @@ namespace ofx {
 /// thread, the TaskQueue_ can be used to complete tasks that require execution
 /// in the primary execution thread (e.g. OpenGL calls, texture upload, etc).
 ///
+/// When returning data in a custom event, the user is encouraged to design a
+/// system wherein a final piece of process is delivered, ready to be quickly
+/// consumed by the listener.  For example, if the user schedules web-tasks,
+/// the socket stream should be consumed, parsed and packaged before delivery
+/// in order keep the main thread moving quickly.  Passing "work" back to the
+/// main thread defeats the purpose of a multi-threaded queue.
+///
 /// TaskQueue_ has events for standard task callbacks, starting, cancellation,
 /// exceptions, progress and finishing.  Additionally the user can define a
 /// custom "Data" callback that can be called at any time during thread
@@ -182,7 +189,7 @@ public:
 
     enum
     {
-        /// \brief An enumeration describing the maximum number of tasks.
+        /// \brief A value describing the maximum number of tasks.
         UNLIMITED_TASKS = -1
     };
 
@@ -201,6 +208,21 @@ protected:
     /// \param pTask The task search key.
     /// \return Return the unique taskId for the matching task or a NULL UUID.
     Poco::UUID getTaskId(const TaskPtr& pTask) const;
+
+    /// \brief Handle all custom user notifications from the Notification queue.
+    ///
+    /// By default this method handles the custom DataType notifications.  If
+    /// desired, the subclasses can override this method and add additional
+    /// custom data event callbacks that extend BaseTaskEventArgs just as
+    /// TaskDataEventArgs currently does.  The subclass must then host those
+    /// additional events as a member variable.
+    ///
+    /// \param task An auto pointer to the associated task.
+    /// \param taskID a task id for passed task.
+    /// \param pNotification a pointer to the notification.
+    virtual void handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
+                                        const Poco::UUID& taskId,
+                                        Poco::Notification::Ptr pNotification);
 
 private:
     /// \brief A typedef for a task list.
@@ -489,6 +511,25 @@ void TaskQueue_<DataType>::onNotification(Poco::TaskNotification* pNf)
 
 
 template<typename DataType>
+void TaskQueue_<DataType>::handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
+                                                  const Poco::UUID& taskId,
+                                                  Poco::Notification::Ptr pNotification)
+{
+    Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskData = 0;
+
+    if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
+    {
+        TaskDataEventArgs<DataType> args(taskId, taskData->custom());
+        ofNotifyEvent(events.onTaskData, args, this);
+    }
+    else
+    {
+        ofLogFatalError("TaskQueue::handleNotification") << "Unknown Task Subclass.";
+    }
+}
+
+
+template<typename DataType>
 void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotification)
 {
     Poco::AutoPtr<Poco::TaskNotification> task = 0;
@@ -566,7 +607,8 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
             }
             else
             {
-                ofLogFatalError("TaskQueue::handleNotification") << "Unknown Task Subclass.";
+                // It is not a standard notification, so treat it as a user event.
+                handleUserNotification(task, taskId, pNotification);
             }
         }
         else
