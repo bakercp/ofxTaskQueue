@@ -30,41 +30,18 @@ void ofApp::setup()
 {
     ofEnableAlphaBlending();
 
-    ofSetFrameRate(120);
+    ofSetFrameRate(60);
 
-    queue.registerTaskEvents(this);
-
-    for (int i = 0; i < 10000; ++i)
+    for (int i = 0; i < 100; ++i)
     {
         std::string name = "Test Task #" + ofToString(i);
-        Poco::UUID uuid = queue.start(new CountingTask(name, 100));
-
-        // Add the task to our map.
-        TaskProgress task;
-        task.name = name;
-        task.uuid = uuid;
-        tasks[uuid] = task;
+        queue.start(new CountingTask(name, 100));
     }
 }
 
 
 void ofApp::update()
 {
-    std::map<Poco::UUID, TaskProgress>::iterator iter = tasks.begin();
-
-    unsigned long long now = ofGetElapsedTimeMillis();
-
-    while (iter != tasks.end())
-    {
-        if (iter->second.progress < 0 && now > iter->second.autoClearTime)
-        {
-            tasks.erase(iter++);
-        }
-        else
-        {
-            ++iter;
-        }
-    }
 }
 
 
@@ -72,24 +49,60 @@ void ofApp::draw()
 {
     ofBackground(0);
 
-    std::map<Poco::UUID, TaskProgress>::iterator iter = tasks.begin();
+    const ofx::TaskQueue::TaskProgressMap& tasks = queue.getTaskProgressMap();
+
+    ofx::TaskQueue::TaskProgressMap::const_iterator iter = tasks.begin();
 
     int y = 0;
     int height = 20;
 
     while (iter != tasks.end())
     {
-        TaskProgress& t = iter->second;
+        const ofx::TaskProgress& task = iter->second;
 
-        t.height = height;
-        t.width = ofGetWidth();
-        t.x = 0;
-        t.y = y;
+        ofPushMatrix();
+        ofTranslate(0, y);
+        ofFill();
 
-        t.draw();
+        if (task.getProgress() < 0) // Failed.
+        {
+            ofSetColor(255, 0, 0);
+        }
+        else if (task.getProgress() > 0)
+        {
+            ofSetColor(0, 255, 0, 50);
+        }
+        else
+        {
+            ofSetColor(255, 80);
+        }
+
+        ofRect(0, 0, ofGetWidth(), height);
+
+        if (task.getProgress() > 0)
+        {
+            ofFill();
+            ofSetColor(255, 255, 0, 75);
+            ofRect(0, 0, task.getProgress() * ofGetWidth(), height);
+        }
+
+        ofSetColor(255);
+
+        std::stringstream ss;
+
+        ss << task.getName() << " ";
+        ss << (task.getProgress() * 100);
+
+        if (!task.getErrorMessage().empty())
+        {
+            ss << task.getErrorMessage();
+        }
+
+        ofDrawBitmapString(ss.str(), ofPoint(10, 14, 0));
+        
+        ofPopMatrix();
 
         y += (height + 5);
-
         ++iter;
     }
 }
@@ -103,91 +116,3 @@ void ofApp::keyPressed(int key)
     }
 }
 
-
-void ofApp::onTaskStarted(const ofx::TaskStartedEventArgs& args)
-{
-    if (tasks.find(args.getTaskId()) != tasks.end())
-    {
-        tasks[args.getTaskId()].progress = 0.000001; // Just give it a nudge.
-    }
-    else
-    {
-        ofLogFatalError("ofApp::onTaskCancelled") << "Unknown UUID.";
-    }
-}
-
-
-void ofApp::onTaskCancelled(const ofx::TaskCancelledEventArgs& args)
-{
-    if (tasks.find(args.getTaskId()) != tasks.end())
-    {
-        tasks[args.getTaskId()].progress = -1;
-    }
-    else
-    {
-        ofLogFatalError("ofApp::onTaskCancelled") << "Unknown UUID.";
-    }
-}
-
-
-void ofApp::onTaskFinished(const ofx::TaskFinishedEventArgs& args)
-{
-    std::map<Poco::UUID, TaskProgress>::iterator iter = tasks.find(args.getTaskId());
-
-    if (tasks.find(args.getTaskId()) != tasks.end())
-    {
-        if (iter->second.progress < 0)
-        {
-            // There was an error, so let it be here for just a few seconds.
-            tasks[args.getTaskId()].autoClearTime = ofGetElapsedTimeMillis() + 2000;
-        }
-        else
-        {
-            tasks.erase(iter);
-        }
-    }
-    else
-    {
-        ofLogFatalError("ofApp::onTaskFinished") << "Unknown UUID.";
-    }
-}
-
-
-void ofApp::onTaskFailed(const ofx::TaskFailedEventArgs& args)
-{
-    if (tasks.find(args.getTaskId()) != tasks.end())
-    {
-        tasks[args.getTaskId()].progress = -1;
-        tasks[args.getTaskId()].message = args.getException().displayText();
-    }
-    else
-    {
-        ofLogFatalError("ofApp::onTaskFailed") << "Unknown UUID.";
-    }
-}
-
-
-void ofApp::onTaskProgress(const ofx::TaskProgressEventArgs& args)
-{
-    if (tasks.find(args.getTaskId()) != tasks.end())
-    {
-        tasks[args.getTaskId()].progress = args.getProgress();
-    }
-    else
-    {
-        ofLogFatalError("ofApp::onTaskProgress") << "Unknown UUID.";
-    }
-}
-
-
-void ofApp::onTaskData(const ofx::TaskDataEventArgs<std::string>& args)
-{
-    if (tasks.find(args.getTaskId()) != tasks.end())
-    {
-        tasks[args.getTaskId()].message = args.getData();
-    }
-    else
-    {
-        ofLogFatalError("ofApp::onTaskData") << "Unknown UUID.";
-    }
-}

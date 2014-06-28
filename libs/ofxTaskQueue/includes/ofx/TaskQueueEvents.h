@@ -27,6 +27,7 @@
 
 
 #include "Poco/Exception.h"
+#include "Poco/Task.h"
 #include "Poco/UUID.h"
 #include "ofEvents.h"
 #include "ofTypes.h"
@@ -43,7 +44,8 @@ public:
     /// \param taskId The unique task id for the referenced Task.
     /// \param taskName The name of the referenced Task;
     BaseTaskEventArgs(const Poco::UUID& taskId,
-                      const std::string& taskName);
+                      const std::string& taskName,
+                      Poco::Task::TaskState state);
 
     /// \brief Destroy the BaseTaskEventArgs.
     virtual ~BaseTaskEventArgs();
@@ -56,6 +58,10 @@ public:
     /// \returns the task name.
     const std::string& getTaskName() const;
 
+    /// \brief Get the State of the task.
+    /// \returns the State of the task.
+    Poco::Task::TaskState getState() const;
+
 protected:
     /// \brief The unique task id for the referenced task.
     const Poco::UUID& _taskId;
@@ -63,9 +69,13 @@ protected:
     /// \brief The name of the given task.
     const std::string& _taskName;
 
+    /// \brief The Poco::Task::TaskState of the task.
+    Poco::Task::TaskState _state;
+
 };
 
 
+typedef BaseTaskEventArgs TaskQueuedEventArgs;
 typedef BaseTaskEventArgs TaskStartedEventArgs;
 typedef BaseTaskEventArgs TaskCancelledEventArgs;
 typedef BaseTaskEventArgs TaskFinishedEventArgs;
@@ -137,7 +147,7 @@ public:
     TaskDataEventArgs(const Poco::UUID& taskId,
                       const std::string& taskName,
                       const DataType& data):
-        BaseTaskEventArgs(taskId, taskName),
+        BaseTaskEventArgs(taskId, taskName, Poco::Task::TASK_RUNNING),
         _data(data)
     {
     }
@@ -161,6 +171,59 @@ protected:
 };
 
 
+class TaskProgress
+{
+public:
+    TaskProgress(const Poco::UUID& taskId = Poco::UUID::null(),
+                 const std::string& name = "",
+                 Poco::Task::TaskState state = Poco::Task::TASK_RUNNING,
+                 float progress = 0,
+                 const std::string& errorMessage = "");
+
+    virtual ~TaskProgress();
+
+    void update(const Poco::Task& task);
+
+    void update(const BaseTaskEventArgs& args);
+
+    void update(const TaskProgressEventArgs& args);
+
+    void update(const TaskFailedEventArgs& args);
+
+    const Poco::UUID& getTaskId() const;
+
+    void setTaskId(const Poco::UUID& taskId);
+
+    const std::string& getName() const;
+
+    void setName(const std::string& name);
+
+    Poco::Task::TaskState getState() const;
+
+    void setState(Poco::Task::TaskState state);
+
+    float getProgress() const;
+
+    void setProgress(float progress);
+
+    const std::string& getErrorMessage() const;
+
+    void setErrorMessage(const std::string& errorMessage);
+
+    bool cancelled() const;
+
+    bool error() const;
+
+protected:
+    Poco::UUID _taskId;
+    std::string _name;
+    Poco::Task::TaskState _state;
+    float _progress;
+    std::string _errorMessage;
+    
+};
+
+
 /// \brief A collection of TaskQueue events.
 ///
 /// Clients can subscribe to these events through the TaskQeueue.
@@ -173,6 +236,9 @@ template<typename DataType>
 class TaskQueueEvents
 {
 public:
+    /// \brief Event called when the Task is Queued.
+    ofEvent<const TaskQueuedEventArgs> onTaskQueued;
+
     /// \brief Event called when the Task is started.
     ofEvent<const TaskStartedEventArgs> onTaskStarted;
 

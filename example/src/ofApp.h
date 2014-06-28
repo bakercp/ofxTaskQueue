@@ -31,56 +31,6 @@
 #include "CountingTask.h"
 
 
-class TaskProgress: public ofRectangle
-{
-public:
-    TaskProgress(): progress(0), autoClearTime(0)
-    {
-    }
-
-    void draw()
-    {
-        ofPushMatrix();
-        ofTranslate(x, y);
-        ofFill();
-
-        if (progress < 0) // Failed.
-        {
-            ofSetColor(255, 0, 0);
-        }
-        else if (progress > 0)
-        {
-            ofSetColor(0, 255, 0, 50);
-        }
-        else
-        {
-            ofSetColor(255, 80);
-        }
-
-        ofRect(0, 0, width, height);
-
-        if (progress > 0)
-        {
-            ofFill();
-            ofSetColor(255, 255, 0, 75);
-            ofRect(0, 0, progress * width, height);
-        }
-
-        ofSetColor(255);
-        ofDrawBitmapString(name + " " + ofToString(progress * 100) + "%: " + message, ofPoint(10, 14, 0));
-
-        ofPopMatrix();
-    }
-
-    std::string name;
-    Poco::UUID uuid;
-    float progress;
-    std::string message;
-    unsigned long long autoClearTime;
-
-};
-
-
 class ofApp: public ofBaseApp
 {
 public:
@@ -90,15 +40,6 @@ public:
 
     void keyPressed(int key);
 
-    void onTaskStarted(const ofx::TaskStartedEventArgs& args);
-    void onTaskCancelled(const ofx::TaskCancelledEventArgs& args);
-    void onTaskFinished(const ofx::TaskFinishedEventArgs& args);
-    void onTaskFailed(const ofx::TaskFailedEventArgs& args);
-    void onTaskProgress(const ofx::TaskProgressEventArgs& args);
-    void onTaskData(const ofx::TaskDataEventArgs<std::string>& args);
-
-    ofx::TaskQueue_<std::string> queue;
-
-    std::map<Poco::UUID, TaskProgress> tasks;
+    ofx::TaskQueue queue;
 
 };

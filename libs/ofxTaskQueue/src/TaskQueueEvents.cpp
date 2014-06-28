@@ -30,9 +30,11 @@ namespace ofx {
 
 
 BaseTaskEventArgs::BaseTaskEventArgs(const Poco::UUID& taskId,
-                                     const std::string& taskName):
+                                     const std::string& taskName,
+                                     Poco::Task::TaskState state):
     _taskId(taskId),
-    _taskName(taskName)
+    _taskName(taskName),
+    _state(state)
 {
 }
 
@@ -54,10 +56,16 @@ const std::string& BaseTaskEventArgs::getTaskName() const
 }
 
 
+Poco::Task::TaskState BaseTaskEventArgs::getState() const
+{
+    return _state;
+}
+
+
 TaskFailedEventArgs::TaskFailedEventArgs(const Poco::UUID& taskId,
                                          const std::string& taskName,
                                          const Poco::Exception& exception):
-    BaseTaskEventArgs(taskId, taskName),
+    BaseTaskEventArgs(taskId, taskName, Poco::Task::TASK_RUNNING),
     _exception(exception)
 {
 }
@@ -77,7 +85,7 @@ const Poco::Exception& TaskFailedEventArgs::getException() const
 TaskProgressEventArgs::TaskProgressEventArgs(const Poco::UUID& taskId,
                                              const std::string& taskName,
                                              float progress):
-    BaseTaskEventArgs(taskId, taskName),
+    BaseTaskEventArgs(taskId, taskName, Poco::Task::TASK_RUNNING),
     _progress(progress)
 {
 }
@@ -91,6 +99,117 @@ TaskProgressEventArgs::~TaskProgressEventArgs()
 float TaskProgressEventArgs::getProgress() const
 {
     return _progress;
+}
+
+
+TaskProgress::TaskProgress(const Poco::UUID& taskId,
+                           const std::string& name,
+                           Poco::Task::TaskState state,
+                           float progress,
+                           const std::string& errorMessage):
+    _taskId(taskId),
+    _name(name),
+    _state(state),
+    _progress(progress)
+{
+}
+
+
+TaskProgress::~TaskProgress()
+{
+}
+
+
+void TaskProgress::update(const Poco::Task& task)
+{
+    _name = task.name();
+    _state = task.state();
+}
+
+
+void TaskProgress::update(const BaseTaskEventArgs& args)
+{
+    _taskId = args.getTaskId();
+    _name = args.getTaskName();
+    _state = args.getState();
+}
+
+
+void TaskProgress::update(const TaskProgressEventArgs& args)
+{
+    _taskId = args.getTaskId();
+    _name = args.getTaskName();
+    _state = args.getState();
+    _progress = args.getProgress();
+}
+
+
+void TaskProgress::update(const TaskFailedEventArgs& args)
+{
+    _taskId = args.getTaskId();
+    _name = args.getTaskName();
+    _state = args.getState();
+    _errorMessage = args.getException().displayText();
+}
+
+
+const Poco::UUID& TaskProgress::getTaskId() const
+{
+    return _taskId;
+}
+
+
+void TaskProgress::setTaskId(const Poco::UUID& taskId)
+{
+    _taskId = taskId;
+}
+
+
+const std::string& TaskProgress::getName() const
+{
+    return _name;
+}
+
+
+void TaskProgress::setName(const std::string& name)
+{
+    _name = name;
+}
+
+
+Poco::Task::TaskState TaskProgress::getState() const
+{
+    return _state;
+}
+
+
+void TaskProgress::setState(Poco::Task::TaskState state)
+{
+    _state = state;
+}
+
+
+float TaskProgress::getProgress() const
+{
+    return _progress;
+}
+
+
+void TaskProgress::setProgress(float progress)
+{
+    _progress = progress;
+}
+
+
+const std::string& TaskProgress::getErrorMessage() const
+{
+    return _errorMessage;
+}
+
+
+void TaskProgress::setErrorMessage(const std::string& errorMessage)
+{
+    _errorMessage = errorMessage;
 }
 
 
