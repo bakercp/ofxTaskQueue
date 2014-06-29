@@ -23,51 +23,50 @@
 // =============================================================================
 
 
-#include "CountingTask.h"
+#include "SimpleCountingTask.h"
 #include "Poco/TaskNotification.h"
 #include "ofUtils.h"
 
 
-int CountingTask::i = 0;
-
-
-CountingTask::CountingTask(const std::string& name, float target):
+SimpleCountingTask::SimpleCountingTask(const std::string& name, float target):
     Poco::Task(name),
-    _i(++i),
     _targetNumber(target),
     _currentNumber(0)
 {
 }
 
 
-CountingTask::~CountingTask()
+SimpleCountingTask::~SimpleCountingTask()
 {
 }
 
 
-void CountingTask::runTask()
+void SimpleCountingTask::runTask()
 {
     while (_currentNumber < _targetNumber)
     {
         // Generate a random increment to add.
-        float increment = ofRandom(1);
+        _currentNumber = std::min(_currentNumber + ofRandom(1), _targetNumber);
 
-        _currentNumber = std::min(_targetNumber, _currentNumber + increment);
+        setProgress(_currentNumber / _targetNumber); // report progress
 
-        float progress = _currentNumber / _targetNumber;
-
-        setProgress(progress); // report progress
-
+        // In our custom tasks, we must regularly see if this task is cancelled.
         if (isCancelled())
         {
             break;
         }
 
+        // If cancelled, sleep will also return true, require us to break.
         if (sleep(10))
         {
             break;
         }
 
+        // We occasionally post a data notification, using a string.
+        // Our TaskQueue_<std::string> can receive and process the
+        // corresponding Poco::TaskCustomNotification, e.g.
+        //
+        // Poco::TaskCustomNotification<std::string>
         if (ofRandom(0, 1) > 0.999)
         {
             std::string txt = "Here's a random number: " + ofToString(ofRandom(1000));
@@ -75,6 +74,7 @@ void CountingTask::runTask()
             postNotification(new Poco::TaskCustomNotification<std::string>(this, txt));
         }
 
+        // We occasionally throw an exception to demonstrate error recovery.
         if (ofRandom(0, 1) > 0.999)
         {
             throw Poco::Exception("Random Exception");
@@ -82,4 +82,5 @@ void CountingTask::runTask()
     }
 
     // Finished.
+
 }

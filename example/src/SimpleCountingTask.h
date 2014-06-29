@@ -27,21 +27,18 @@
 
 
 #include "Poco/Task.h"
-#include "ofMath.h"
 
 
-class CountingTask: public Poco::Task
+class SimpleCountingTask: public Poco::Task
 {
 public:
-    CountingTask(const std::string& name, float target);
+    SimpleCountingTask(const std::string& name, float target);
 
-    virtual ~CountingTask();
+    virtual ~SimpleCountingTask();
     
     void runTask();
 
 private:
-    static int i;
-    int _i;
     float _targetNumber;
     float _currentNumber;
 

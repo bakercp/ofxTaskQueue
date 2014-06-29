@@ -29,19 +29,38 @@
 void ofApp::setup()
 {
     ofEnableAlphaBlending();
-
     ofSetFrameRate(60);
 
-    for (int i = 0; i < 100; ++i)
+    // Register to receive task queue events.
+    queue.registerTaskEvents(this);
+
+    for (int i = 0; i < 1000; ++i)
     {
-        std::string name = "Test Task #" + ofToString(i);
-        queue.start(new CountingTask(name, 100));
+        std::string name = "Counting Task #" + ofToString(i);
+        queue.start(new SimpleCountingTask(name, 100));
     }
 }
 
 
 void ofApp::update()
 {
+    TaskProgress::iterator iter = taskProgress.begin();
+
+    while (iter != taskProgress.end())
+    {
+        // Get a reference to the task in our map.
+        SimpleTaskProgress& task = iter->second;
+
+        // If it is finished and done fading, then erase it from our map.
+        if (task.state == Poco::Task::TASK_FINISHED && task.fader <= 0)
+        {
+            taskProgress.erase(iter++);
+        }
+        else
+        {
+            ++iter;
+        }
+    }
 }
 
 
@@ -49,62 +68,45 @@ void ofApp::draw()
 {
     ofBackground(0);
 
-    const ofx::TaskQueue::TaskProgressMap& tasks = queue.getTaskProgressMap();
+    std::stringstream ss;
 
-    ofx::TaskQueue::TaskProgressMap::const_iterator iter = tasks.begin();
+    ss << "Press 'c' to cancel all tasks." << std::endl;
+    ss << "Press 'a' to add tasks." << std::endl;
 
-    int y = 0;
+    ofDrawBitmapStringHighlight(ss.str(), ofPoint(10, 14));
+
+    ss.str("");
+    ss << "Total Active Tasks: " << queue.getActiveCount() << std::endl;
+    ss << "Total Queued Tasks: " << queue.getQueuedCount();
+
+    ofDrawBitmapStringHighlight(ss.str(), ofPoint(ofGetWidth() / 2, 14));
+
     int height = 20;
+    int y = height * 3;
 
-    while (iter != tasks.end())
+    TaskProgress::iterator iter = taskProgress.begin();
+    
+    while (iter != taskProgress.end())
     {
-        const ofx::TaskProgress& task = iter->second;
+        // Get a reference to the task in our map.
+        SimpleTaskProgress& task = iter->second;
 
-        ofPushMatrix();
-        ofTranslate(0, y);
-        ofFill();
+        // Call its draw function.
+        task.draw(0, y, ofGetWidth(), height);
 
-        if (task.getProgress() < 0) // Failed.
-        {
-            ofSetColor(255, 0, 0);
-        }
-        else if (task.getProgress() > 0)
-        {
-            ofSetColor(0, 255, 0, 50);
-        }
-        else
-        {
-            ofSetColor(255, 80);
-        }
-
-        ofRect(0, 0, ofGetWidth(), height);
-
-        if (task.getProgress() > 0)
-        {
-            ofFill();
-            ofSetColor(255, 255, 0, 75);
-            ofRect(0, 0, task.getProgress() * ofGetWidth(), height);
-        }
-
-        ofSetColor(255);
-
-        std::stringstream ss;
-
-        ss << task.getName() << " ";
-        ss << (task.getProgress() * 100);
-
-        if (!task.getErrorMessage().empty())
-        {
-            ss << task.getErrorMessage();
-        }
-
-        ofDrawBitmapString(ss.str(), ofPoint(10, 14, 0));
-        
-        ofPopMatrix();
-
+        // Increment our height.
         y += (height + 5);
+
+        // Increment our iterator.
         ++iter;
     }
+}
+
+
+void ofApp::exit()
+{
+    // It's a good practice to unregister the events.
+    queue.unregisterTaskEvents(this);
 }
 
 
@@ -114,5 +116,54 @@ void ofApp::keyPressed(int key)
     {
         queue.cancelAll();
     }
+    else if ('a')
+    {
+        queue.start(new SimpleCountingTask("User manually added!", 100));
+    }
 }
 
+
+void ofApp::onTaskQueued(const ofx::TaskQueuedEventArgs& args)
+{
+    taskProgress[args.getTaskId()] = SimpleTaskProgress(args);
+}
+
+
+void ofApp::onTaskStarted(const ofx::TaskStartedEventArgs& args)
+{
+    taskProgress[args.getTaskId()].update(args);
+}
+
+
+void ofApp::onTaskCancelled(const ofx::TaskCancelledEventArgs& args)
+{
+    taskProgress[args.getTaskId()].update(args);
+}
+
+
+void ofApp::onTaskFinished(const ofx::TaskFinishedEventArgs& args)
+{
+    // This is always called last, even after a task failure.
+    // We do not remove the task progress here because we want to
+    // keep it around and display it.  We will remove it when it
+    // expires during a future update loop.
+    taskProgress[args.getTaskId()].update(args);
+}
+
+
+void ofApp::onTaskFailed(const ofx::TaskFailedEventArgs& args)
+{
+    taskProgress[args.getTaskId()].update(args);
+}
+
+
+void ofApp::onTaskProgress(const ofx::TaskProgressEventArgs& args)
+{
+    taskProgress[args.getTaskId()].update(args);
+}
+
+
+void ofApp::onTaskData(const ofx::TaskStringEventArgs& args)
+{
+    taskProgress[args.getTaskId()].update(args);
+}

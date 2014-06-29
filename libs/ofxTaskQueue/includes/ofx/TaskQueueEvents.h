@@ -76,9 +76,6 @@ protected:
 
 
 typedef BaseTaskEventArgs TaskQueuedEventArgs;
-typedef BaseTaskEventArgs TaskStartedEventArgs;
-typedef BaseTaskEventArgs TaskCancelledEventArgs;
-typedef BaseTaskEventArgs TaskFinishedEventArgs;
 
 
 /// \brief Event arguments for a Task failure event.
@@ -91,6 +88,7 @@ public:
     /// \param exception The exception that caused the Task failure.
     TaskFailedEventArgs(const Poco::UUID& taskId,
                         const std::string& taskName,
+                        Poco::Task::TaskState state,
                         const Poco::Exception& exception);
 
     /// \brief Destroy the TaskFailedEventArgs.
@@ -117,6 +115,7 @@ public:
     /// \param progress The current progress (0.0 - 1.0).
     TaskProgressEventArgs(const Poco::UUID& taskId,
                           const std::string& taskName,
+                          Poco::Task::TaskState state,
                           float progress);
 
     /// \brief Destroy the TaskProgressEventArgs.
@@ -133,12 +132,17 @@ protected:
 };
 
 
+typedef TaskProgressEventArgs TaskStartedEventArgs;
+typedef TaskProgressEventArgs TaskCancelledEventArgs;
+typedef TaskProgressEventArgs TaskFinishedEventArgs;
+
+
 /// \brief Event arguments for a Task failure event.
 ///
 ///
 /// \tparam DataType The custom event data type.
 template<typename DataType>
-class TaskDataEventArgs: public BaseTaskEventArgs
+class TaskDataEventArgs: public TaskProgressEventArgs
 {
 public:
     /// \brief Create a TaskDataEventArgs.
@@ -146,8 +150,13 @@ public:
     /// \param data The custom event data.
     TaskDataEventArgs(const Poco::UUID& taskId,
                       const std::string& taskName,
+                      Poco::Task::TaskState state,
+                      float progress,
                       const DataType& data):
-        BaseTaskEventArgs(taskId, taskName, Poco::Task::TASK_RUNNING),
+        TaskProgressEventArgs(taskId,
+                              taskName,
+                              Poco::Task::TASK_RUNNING,
+                              progress),
         _data(data)
     {
     }
@@ -168,59 +177,6 @@ protected:
     /// \brief A const reference to the custom data type sent with the event.
     const DataType& _data;
 
-};
-
-
-class TaskProgress
-{
-public:
-    TaskProgress(const Poco::UUID& taskId = Poco::UUID::null(),
-                 const std::string& name = "",
-                 Poco::Task::TaskState state = Poco::Task::TASK_RUNNING,
-                 float progress = 0,
-                 const std::string& errorMessage = "");
-
-    virtual ~TaskProgress();
-
-    void update(const Poco::Task& task);
-
-    void update(const BaseTaskEventArgs& args);
-
-    void update(const TaskProgressEventArgs& args);
-
-    void update(const TaskFailedEventArgs& args);
-
-    const Poco::UUID& getTaskId() const;
-
-    void setTaskId(const Poco::UUID& taskId);
-
-    const std::string& getName() const;
-
-    void setName(const std::string& name);
-
-    Poco::Task::TaskState getState() const;
-
-    void setState(Poco::Task::TaskState state);
-
-    float getProgress() const;
-
-    void setProgress(float progress);
-
-    const std::string& getErrorMessage() const;
-
-    void setErrorMessage(const std::string& errorMessage);
-
-    bool cancelled() const;
-
-    bool error() const;
-
-protected:
-    Poco::UUID _taskId;
-    std::string _name;
-    Poco::Task::TaskState _state;
-    float _progress;
-    std::string _errorMessage;
-    
 };
 
 
@@ -258,6 +214,10 @@ public:
     ofEvent<const TaskDataEventArgs<DataType> > onTaskData;
     
 };
+
+
+/// \brief A typedef corresponding the the default TaskQueue_<std::string>.
+typedef TaskDataEventArgs<std::string> TaskStringEventArgs;
 
 
 } // namespace ofx

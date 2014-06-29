@@ -26,37 +26,33 @@
 #pragma once
 
 
-#include "ofMain.h"
-#include "ofxTaskQueue.h"
-#include "SimpleCountingTask.h"
-#include "SimpleTaskProgress.h"
+#include <string>
+#include "Poco/UUID.h"
+#include "Poco/Task.h"
+#include "ofx/TaskQueueEvents.h"
 
 
-class ofApp: public ofBaseApp
+class SimpleTaskProgress
 {
 public:
-    void setup();
-    void update();
-    void draw();
-    void exit();
+    SimpleTaskProgress();
+    SimpleTaskProgress(const ofx::BaseTaskEventArgs& args);
 
-    void keyPressed(int key);
+    virtual ~SimpleTaskProgress();
 
-    void onTaskQueued(const ofx::TaskQueuedEventArgs& args);
-    void onTaskStarted(const ofx::TaskStartedEventArgs& args);
-    void onTaskCancelled(const ofx::TaskCancelledEventArgs& args);
-    void onTaskFinished(const ofx::TaskFinishedEventArgs& args);
-    void onTaskFailed(const ofx::TaskFailedEventArgs& args);
-    void onTaskProgress(const ofx::TaskProgressEventArgs& args);
-    void onTaskData(const ofx::TaskStringEventArgs& args);
+    void update(const ofx::BaseTaskEventArgs& args);
+    void update(const ofx::TaskProgressEventArgs& args);
+    void update(const ofx::TaskFailedEventArgs& args);
+    void update(const ofx::TaskStringEventArgs& args);
 
-    // Use the default std::string data queue.
-    ofx::TaskQueue queue;
+    void draw(float x, float y, float width, float height);
 
-    // Make a typedef for the map to make it shorter.
-    typedef std::map<Poco::UUID, SimpleTaskProgress> TaskProgress;
+    Poco::UUID taskId;
+    std::string name;
+    Poco::Task::TaskState state;
+    float progress;
+    std::string errorMessage;
+    std::string data;
 
-    // We keep a simple task progress queue.
-    TaskProgress taskProgress;
-
+    float fader;
 };

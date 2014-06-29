@@ -80,7 +80,7 @@ namespace ofx {
 /// does), users can handle an unlimited number of custom data types.
 ///
 /// \tparam DataType defines the custom data type to be sent with notifications.
-template<typename DataType, typename TaskProgressType>
+template<typename DataType>
 class TaskQueue_
 {
 public:
@@ -89,9 +89,6 @@ public:
 
     /// \brief A typedef for a task list.
 	typedef std::list<TaskPtr> TaskList;
-
-    /// \brief A typedef for a TaskProgressMap.
-    typedef std::map<Poco::UUID, TaskProgressType> TaskProgressMap;
 
     /// \brief Create a TaskQueue using the default ThreadPool.
     ///
@@ -151,10 +148,6 @@ public:
     ///
     /// \returns the number of tasks under the control of the TaskQueue.
     std::size_t getCount() const;
-
-    const TaskProgressMap& getTaskProgressMapRef() const;
-
-    TaskProgressMap getTaskProgressMap() const;
 
     /// \brief Get the maximum number of tasks.
     ///
@@ -240,17 +233,9 @@ protected:
                                         const Poco::UUID& taskId,
                                         Poco::Notification::Ptr pNotification);
 
-    void onTaskQueued(const TaskQueuedEventArgs& args);
-    void onTaskStarted(const TaskStartedEventArgs& args);
-    void onTaskCancelled(const TaskCancelledEventArgs& args);
-    void onTaskFinished(const TaskFinishedEventArgs& args);
-    void onTaskFailed(const TaskFailedEventArgs& args);
-    void onTaskProgress(const TaskProgressEventArgs& args);
-    void onTaskData(const TaskDataEventArgs<DataType>& args);
-
 private:
     /// \brief A typedef for a task list.
-    typedef Poco::Observer<TaskQueue_<DataType, TaskProgressType>, Poco::TaskNotification> TaskQueueObserver;
+    typedef Poco::Observer<TaskQueue_<DataType>, Poco::TaskNotification> TaskQueueObserver;
 
     /// \brief A typedef for a ForwardTaskMap.
     typedef std::map<Poco::UUID, TaskPtr> IdTaskMap;
@@ -288,9 +273,6 @@ private:
     /// \brief A list of tasks waiting to be submitted to the TaskManager.
     TaskList _queuedTasks;
 
-    /// \brief A list of taskIds and their progress.
-    TaskProgressMap _taskProgress;
-
     /// \brief A NotificationQueue to distribute in the main thread.
     ///
     /// All notifications in the notification queue are handled during the
@@ -304,48 +286,44 @@ private:
 };
 
 /// \brief A typical task that can send std::string data events.
-typedef TaskQueue_<std::string, TaskProgress> TaskQueue;
+typedef TaskQueue_<std::string> TaskQueue;
 
 
-template<typename DataType, typename TaskProgressType>
-TaskQueue_<DataType, TaskProgressType>::TaskQueue_(int maximumTasks):
+template<typename DataType>
+TaskQueue_<DataType>::TaskQueue_(int maximumTasks):
     _maximumTasks(maximumTasks),
     _taskManager(Poco::ThreadPool::defaultPool())
 {
     // Add the ofEvent().update listener.
     ofAddListener(ofEvents().update,
                   this,
-                  &TaskQueue_<DataType, TaskProgressType>::update,
+                  &TaskQueue_<DataType>::update,
                   OF_EVENT_ORDER_APP);
 
     // Add this class as a TaskManager notification observer.
-    _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<DataType, TaskProgressType>::onNotification));
-
-    registerTaskEvents(this);
+    _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<DataType>::onNotification));
 }
 
 
-template<typename DataType, typename TaskProgressType>
-TaskQueue_<DataType, TaskProgressType>::TaskQueue_(int maximumTasks,
+template<typename DataType>
+TaskQueue_<DataType>::TaskQueue_(int maximumTasks,
                                  Poco::ThreadPool& pool):
     _maximumTasks(maximumTasks),
     _taskManager(pool)
 {
     // Add the ofEvent().update listener.
-    ofAddListener(ofEvents().update, this, &TaskQueue_<DataType, TaskProgressType>::update, OF_EVENT_ORDER_APP);
+    ofAddListener(ofEvents().update, this, &TaskQueue_<DataType>::update, OF_EVENT_ORDER_APP);
 
     // Add this class as a TaskManager notification observer.
-    _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<DataType, TaskProgressType>::onNotification));
-
-    registerTaskEvents(this);
+    _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<DataType>::onNotification));
 }
 
 
-template<typename DataType, typename TaskProgressType>
-TaskQueue_<DataType, TaskProgressType>::~TaskQueue_()
+template<typename DataType>
+TaskQueue_<DataType>::~TaskQueue_()
 {
     // Remove the ofEvent().update listener.
-    ofRemoveListener(ofEvents().update, this, &TaskQueue_<DataType, TaskProgressType>::update, OF_EVENT_ORDER_APP);
+    ofRemoveListener(ofEvents().update, this, &TaskQueue_<DataType>::update, OF_EVENT_ORDER_APP);
 
     // Cancel all tasks currently running.
     _taskManager.cancelAll();
@@ -354,13 +332,11 @@ TaskQueue_<DataType, TaskProgressType>::~TaskQueue_()
     _taskManager.joinAll();
 
     // Remove this class as a TaskManager notification observer.
-    _taskManager.removeObserver(TaskQueueObserver(*this, &TaskQueue_<DataType, TaskProgressType>::onNotification));
-
-    unregisterTaskEvents(this);
+    _taskManager.removeObserver(TaskQueueObserver(*this, &TaskQueue_<DataType>::onNotification));
 }
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::update(ofEventArgs& args)
+template<typename DataType>
+void TaskQueue_<DataType>::update(ofEventArgs& args)
 {
     // Try to start any queued tasks.
     TaskList::iterator queuedTasksIter = _queuedTasks.begin();
@@ -425,24 +401,11 @@ void TaskQueue_<DataType, TaskProgressType>::update(ofEventArgs& args)
     }
     while (!pNotification.isNull());
 
-    typename TaskProgressMap::iterator taskProgressIter = _taskProgress.begin();
-
-    while (taskProgressIter != _taskProgress.end())
-    {
-        if (taskProgressIter->second.getState() == Poco::Task::TASK_FINISHED)
-        {
-            _taskProgress.erase(taskProgressIter++);
-        }
-        else
-        {
-            ++taskProgressIter;
-        }
-    }
 }
 
 
-template<typename DataType, typename TaskProgressType>
-Poco::UUID TaskQueue_<DataType, TaskProgressType>::start(Poco::Task* pRawTask)
+template<typename DataType>
+Poco::UUID TaskQueue_<DataType>::start(Poco::Task* pRawTask)
 {
     // Take ownership immediately.
     Poco::AutoPtr<Poco::Task> pAutoTask(pRawTask);
@@ -470,8 +433,8 @@ Poco::UUID TaskQueue_<DataType, TaskProgressType>::start(Poco::Task* pRawTask)
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::cancel(TaskPtr taskPtr)
+template<typename DataType>
+void TaskQueue_<DataType>::cancel(TaskPtr taskPtr)
 {
     if (!taskPtr.isNull())
     {
@@ -504,8 +467,8 @@ void TaskQueue_<DataType, TaskProgressType>::cancel(TaskPtr taskPtr)
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::cancel(const Poco::UUID& taskId)
+template<typename DataType>
+void TaskQueue_<DataType>::cancel(const Poco::UUID& taskId)
 {
     TaskPtr taskPtr = getTaskPtr(taskId);
 
@@ -520,8 +483,8 @@ void TaskQueue_<DataType, TaskProgressType>::cancel(const Poco::UUID& taskId)
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::cancelAll()
+template<typename DataType>
+void TaskQueue_<DataType>::cancelAll()
 {
     // Cancel all active tasks.
     _taskManager.cancelAll();
@@ -545,8 +508,8 @@ void TaskQueue_<DataType, TaskProgressType>::cancelAll()
 }
 
 
-template<typename DataType, typename TaskProgressType>
-std::string TaskQueue_<DataType, TaskProgressType>::getTaskName(const Poco::UUID& taskId) const
+template<typename DataType>
+std::string TaskQueue_<DataType>::getTaskName(const Poco::UUID& taskId) const
 {
     if (Poco::AutoPtr<Poco::Task> ptr = getTaskPtr(taskId))
     {
@@ -560,8 +523,8 @@ std::string TaskQueue_<DataType, TaskProgressType>::getTaskName(const Poco::UUID
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onNotification(Poco::TaskNotification* pNf)
+template<typename DataType>
+void TaskQueue_<DataType>::onNotification(Poco::TaskNotification* pNf)
 {
     // TODO: This is a hack because TaskManager::postNotification() breaks
     // AutoPtr in pre 1.4.4.  This is fixed in 1.4.4.
@@ -577,8 +540,8 @@ void TaskQueue_<DataType, TaskProgressType>::onNotification(Poco::TaskNotificati
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
+template<typename DataType>
+void TaskQueue_<DataType>::handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
                                                   const Poco::UUID& taskId,
                                                   Poco::Notification::Ptr pNotification)
 {
@@ -586,7 +549,12 @@ void TaskQueue_<DataType, TaskProgressType>::handleUserNotification(Poco::AutoPt
 
     if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
     {
-        TaskDataEventArgs<DataType> args(taskId, task->task()->name(), taskData->custom());
+        TaskDataEventArgs<DataType> args(taskId,
+                                         task->task()->name(),
+                                         task->task()->state(),
+                                         task->task()->progress(),
+                                         taskData->custom());
+
         ofNotifyEvent(events.onTaskData, args, this);
     }
     else
@@ -596,108 +564,8 @@ void TaskQueue_<DataType, TaskProgressType>::handleUserNotification(Poco::AutoPt
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskQueued(const TaskQueuedEventArgs& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        ofLogFatalError("TaskQueue_::onTaskQueued") << "Found the UUID.  This should not happen.";
-    }
-    else
-    {
-        TaskProgressType progressType;
-        progressType.update(args);
-        _taskProgress[args.getTaskId()] = progressType;
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskStarted(const TaskStartedEventArgs& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        _taskProgress[args.getTaskId()].update(args);
-    }
-    else
-    {
-        ofLogFatalError("TaskQueue_::onTaskStarted") << "Unknown UUID.";
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskCancelled(const TaskCancelledEventArgs& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        _taskProgress[args.getTaskId()].update(args);
-    }
-    else
-    {
-        ofLogFatalError("TaskQueue_::onTaskCancelled") << "Unknown UUID.";
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskFinished(const ofx::TaskFinishedEventArgs& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        _taskProgress[args.getTaskId()].update(args);
-    }
-    else
-    {
-        ofLogFatalError("TaskQueue_::onTaskFinished") << "Unknown UUID.";
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskFailed(const ofx::TaskFailedEventArgs& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        _taskProgress[args.getTaskId()].update(args);
-    }
-    else
-    {
-        ofLogFatalError("TaskQueue_::onTaskFailed") << "Unknown UUID.";
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskProgress(const ofx::TaskProgressEventArgs& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        _taskProgress[args.getTaskId()].update(args);
-    }
-    else
-    {
-        ofLogFatalError("TaskQueue_::onTaskProgress") << "Unknown UUID.";
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::onTaskData(const ofx::TaskDataEventArgs<DataType>& args)
-{
-    if (_taskProgress.find(args.getTaskId()) != _taskProgress.end())
-    {
-        _taskProgress[args.getTaskId()].update(args);
-    }
-    else
-    {
-        ofLogFatalError("TaskQueue_::onTaskData") << "Unknown UUID.";
-    }
-}
-
-
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::handleNotification(Poco::Notification::Ptr pNotification)
+template<typename DataType>
+void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotification)
 {
     Poco::AutoPtr<Poco::TaskNotification> task = 0;
 
@@ -717,18 +585,30 @@ void TaskQueue_<DataType, TaskProgressType>::handleNotification(Poco::Notificati
 
             if (!(taskStarted = task.cast<Poco::TaskStartedNotification>()).isNull())
             {
-                TaskStartedEventArgs args(taskId, task->task()->name(), Poco::Task::TASK_STARTING);
+                TaskStartedEventArgs args(taskId,
+                                          task->task()->name(),
+                                          Poco::Task::TASK_STARTING,
+                                          task->task()->progress());
+
                 ofNotifyEvent(events.onTaskStarted, args, this);
             }
             else if (!(taskCancelled = task.cast<Poco::TaskCancelledNotification>()).isNull())
             {
                 // Here we force the
-                TaskCancelledEventArgs args(taskId, task->task()->name(), Poco::Task::TASK_CANCELLING);
+                TaskCancelledEventArgs args(taskId,
+                                            task->task()->name(),
+                                            Poco::Task::TASK_CANCELLING,
+                                            task->task()->progress());
+
                 ofNotifyEvent(events.onTaskCancelled, args, this);
             }
             else if (!(taskFinished = task.cast<Poco::TaskFinishedNotification>()).isNull())
             {
-                TaskFinishedEventArgs args(taskId, task->task()->name(), Poco::Task::TASK_FINISHED);
+                TaskFinishedEventArgs args(taskId,
+                                           task->task()->name(),
+                                           Poco::Task::TASK_FINISHED,
+                                           task->task()->progress());
+
                 ofNotifyEvent(events.onTaskFinished, args, this);
 
                 IdTaskMap::iterator iterForward = _idTaskMap.find(taskId);
@@ -755,17 +635,30 @@ void TaskQueue_<DataType, TaskProgressType>::handleNotification(Poco::Notificati
             }
             else if (!(taskFailed = task.cast<Poco::TaskFailedNotification>()).isNull())
             {
-                TaskFailedEventArgs args(taskId, task->task()->name(), taskFailed->reason());
+                TaskFailedEventArgs args(taskId,
+                                         task->task()->name(),
+                                         task->task()->state(),
+                                         taskFailed->reason());
+
                 ofNotifyEvent(events.onTaskFailed, args, this);
             }
             else if (!(taskProgress = task.cast<Poco::TaskProgressNotification>()).isNull())
             {
-                TaskProgressEventArgs args(taskId, task->task()->name(), taskProgress->progress());
+                TaskProgressEventArgs args(taskId,
+                                           task->task()->name(),
+                                           task->task()->state(),
+                                           taskProgress->progress());
+
                 ofNotifyEvent(events.onTaskProgress, args, this);
             }
             else if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
             {
-                TaskDataEventArgs<DataType> args(taskId, task->task()->name(), taskData->custom());
+                TaskDataEventArgs<DataType> args(taskId,
+                                                 task->task()->name(),
+                                                 task->task()->state(),
+                                                 task->task()->progress(),
+                                                 taskData->custom());
+
                 ofNotifyEvent(events.onTaskData, args, this);
             }
             else
@@ -785,8 +678,8 @@ void TaskQueue_<DataType, TaskProgressType>::handleNotification(Poco::Notificati
     }
 }
 
-template<typename DataType, typename TaskProgressType>
-bool TaskQueue_<DataType, TaskProgressType>::startTask(TaskPtr pTask)
+template<typename DataType>
+bool TaskQueue_<DataType>::startTask(TaskPtr pTask)
 {
     try
     {
@@ -818,8 +711,8 @@ bool TaskQueue_<DataType, TaskProgressType>::startTask(TaskPtr pTask)
 }
 
 
-template<typename DataType, typename TaskProgressType>
-Poco::UUID TaskQueue_<DataType, TaskProgressType>::getTaskId(const Poco::AutoPtr<Poco::Task>& pNf) const
+template<typename DataType>
+Poco::UUID TaskQueue_<DataType>::getTaskId(const Poco::AutoPtr<Poco::Task>& pNf) const
 {
     TaskIdMap::const_iterator iter = _taskIdMap.find(pNf);
 
@@ -834,9 +727,9 @@ Poco::UUID TaskQueue_<DataType, TaskProgressType>::getTaskId(const Poco::AutoPtr
 }
 
 
-template<typename DataType, typename TaskProgressType>
+template<typename DataType>
 template<typename ListenerClass>
-void TaskQueue_<DataType, TaskProgressType>::registerTaskEvents(ListenerClass* listener)
+void TaskQueue_<DataType>::registerTaskEvents(ListenerClass* listener)
 {
     ofAddListener(events.onTaskQueued, listener, &ListenerClass::onTaskQueued);
     ofAddListener(events.onTaskStarted, listener, &ListenerClass::onTaskStarted);
@@ -848,9 +741,9 @@ void TaskQueue_<DataType, TaskProgressType>::registerTaskEvents(ListenerClass* l
 }
 
 
-template<typename DataType, typename TaskProgressType>
+template<typename DataType>
 template<typename ListenerClass>
-void TaskQueue_<DataType, TaskProgressType>::unregisterTaskEvents(ListenerClass* listener)
+void TaskQueue_<DataType>::unregisterTaskEvents(ListenerClass* listener)
 {
     ofRemoveListener(events.onTaskQueued, listener, &ListenerClass::onTaskQueued);
     ofRemoveListener(events.onTaskStarted, listener, &ListenerClass::onTaskStarted);
@@ -862,64 +755,50 @@ void TaskQueue_<DataType, TaskProgressType>::unregisterTaskEvents(ListenerClass*
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::joinAll()
+template<typename DataType>
+void TaskQueue_<DataType>::joinAll()
 {
     _taskManager.joinAll();
 }
 
 
-template<typename DataType, typename TaskProgressType>
-std::size_t TaskQueue_<DataType, TaskProgressType>::getActiveCount() const
+template<typename DataType>
+std::size_t TaskQueue_<DataType>::getActiveCount() const
 {
     return _taskManager.count();
 }
 
 
-template<typename DataType, typename TaskProgressType>
-std::size_t TaskQueue_<DataType, TaskProgressType>::getQueuedCount() const
+template<typename DataType>
+std::size_t TaskQueue_<DataType>::getQueuedCount() const
 {
     return _queuedTasks.size();
 }
 
 
-template<typename DataType, typename TaskProgressType>
-std::size_t TaskQueue_<DataType, TaskProgressType>::getCount() const
+template<typename DataType>
+std::size_t TaskQueue_<DataType>::getCount() const
 {
     return _taskManager.count() + _queuedTasks.size();
 }
 
 
-template<typename DataType, typename TaskProgressType>
-const typename TaskQueue_<DataType, TaskProgressType>::TaskProgressMap& TaskQueue_<DataType, TaskProgressType>::getTaskProgressMapRef() const
-{
-    return _taskProgress;
-}
-
-
-template<typename DataType, typename TaskProgressType>
-typename TaskQueue_<DataType, TaskProgressType>::TaskProgressMap TaskQueue_<DataType, TaskProgressType>::getTaskProgressMap() const
-{
-    return _taskProgress;
-}
-
-
-template<typename DataType, typename TaskProgressType>
-int TaskQueue_<DataType, TaskProgressType>::getMaximumTasks() const
+template<typename DataType>
+int TaskQueue_<DataType>::getMaximumTasks() const
 {
     return _maximumTasks;
 }
 
 
-template<typename DataType, typename TaskProgressType>
-void TaskQueue_<DataType, TaskProgressType>::setMaximumTasks(int maximumTasks)
+template<typename DataType>
+void TaskQueue_<DataType>::setMaximumTasks(int maximumTasks)
 {
     _maximumTasks = maximumTasks;
 }
 
 
-template<typename DataType, typename TaskProgressType>
-Poco::UUID TaskQueue_<DataType, TaskProgressType>::generateUniqueTaskId(std::size_t& tryCount) const
+template<typename DataType>
+Poco::UUID TaskQueue_<DataType>::generateUniqueTaskId(std::size_t& tryCount) const
 {
     ++tryCount;
 
@@ -941,8 +820,8 @@ Poco::UUID TaskQueue_<DataType, TaskProgressType>::generateUniqueTaskId(std::siz
 }
 
 
-template<typename DataType, typename TaskProgressType>
-Poco::AutoPtr<Poco::Task> TaskQueue_<DataType, TaskProgressType>::getTaskPtr(const Poco::UUID& taskId) const
+template<typename DataType>
+Poco::AutoPtr<Poco::Task> TaskQueue_<DataType>::getTaskPtr(const Poco::UUID& taskId) const
 {
     IdTaskMap::const_iterator iter = _idTaskMap.find(taskId);
     
@@ -952,7 +831,7 @@ Poco::AutoPtr<Poco::Task> TaskQueue_<DataType, TaskProgressType>::getTaskPtr(con
     }
     else
     {
-        ofLogWarning("TaskQueue_<DataType, TaskProgressType>::getTaskPtr") << "No task with id: " << taskId.toString();
+        ofLogWarning("TaskQueue_<DataType>::getTaskPtr") << "No task with id: " << taskId.toString();
         return 0;
     }
 }
