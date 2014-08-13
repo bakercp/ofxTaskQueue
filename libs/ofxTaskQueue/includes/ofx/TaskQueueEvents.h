@@ -155,7 +155,7 @@ public:
                       const DataType& data):
         TaskProgressEventArgs(taskId,
                               taskName,
-                              Poco::Task::TASK_RUNNING,
+                              state,
                               progress),
         _data(data)
     {
