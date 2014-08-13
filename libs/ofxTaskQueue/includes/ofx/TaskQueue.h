@@ -227,7 +227,7 @@ protected:
     /// additional events as a member variable.
     ///
     /// \param task An auto pointer to the associated task.
-    /// \param taskID a task id for passed task.
+    /// \param taskId a task id for passed task.
     /// \param pNotification a pointer to the notification.
     virtual void handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
                                         const Poco::UUID& taskId,
@@ -244,7 +244,7 @@ private:
     typedef std::map<TaskPtr, Poco::UUID> TaskIdMap;
 
     /// \brief Update method callback.
-    /// \params args The args pass with the update event.
+    /// \param args The args pass with the update event.
     void update(ofEventArgs& args);
 
     /// \brief Attempt to submit a task to the task manager.
