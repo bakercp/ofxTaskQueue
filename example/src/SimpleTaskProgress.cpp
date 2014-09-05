@@ -130,7 +130,7 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
 
     std::stringstream ss;
 
-    ss << name << " " << (progress * 100);
+    ss << taskId.toString() << " Name: " << name << " " << (progress * 100);
 
     if (!data.empty())
     {

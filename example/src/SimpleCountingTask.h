@@ -28,28 +28,7 @@
 
 #include "Poco/Task.h"
 #include "Poco/Notification.h"
-
-
-class CountingNotification: public Poco::Notification
-{
-public:
-    CountingNotification(int data): _data(data)
-    {
-    }
-
-    int data() const
-    {
-        return _data;
-    }
-
-    std::string name() const
-    {
-        return "CountingNotification";
-    }
-
-private:
-    int _data;
-};
+#include "Poco/Random.h"
 
 
 class SimpleCountingTask: public Poco::Task
@@ -64,5 +43,7 @@ public:
 private:
     float _targetNumber;
     float _currentNumber;
+
+    Poco::Random rng;
 
 };

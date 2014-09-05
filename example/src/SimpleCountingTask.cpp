@@ -35,6 +35,7 @@ SimpleCountingTask::SimpleCountingTask(const std::string& name, float target):
     _targetNumber(target),
     _currentNumber(0)
 {
+    rng.seed();
 }
 
 
@@ -71,12 +72,11 @@ void SimpleCountingTask::runTask()
         // Poco::TaskCustomNotification<std::string> or
         // Poco::TaskCustomNotification<int> or
 
-        float r = ofRandom(0, 1);
+        float r = rng.nextFloat();
 
         if (r > 0.999)
         {
-            std::string txt = "Here's a random number: " + ofToString(ofRandom(1000));
-
+            std::string txt = "Here's a random number: " + ofToString(r);
             postNotification(new Poco::TaskCustomNotification<std::string>(this, txt));
         }
         else if (r > 0.998)
@@ -87,7 +87,7 @@ void SimpleCountingTask::runTask()
         else if (r > 0.997)
         {
             // We occasionally throw an exception to demonstrate error recovery.
-            throw Poco::Exception("Random Exception");
+            throw Poco::Exception("Random Exception " + ofToString(r));
         }
     }
 
