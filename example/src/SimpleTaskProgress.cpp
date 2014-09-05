@@ -82,15 +82,6 @@ void SimpleTaskProgress::update(const ofx::TaskFailedEventArgs& args)
 }
 
 
-//void SimpleTaskProgress::update(const ofx::TaskStringEventArgs& args)
-//{
-//    taskId = args.getTaskId();
-//    name = args.getTaskName();
-//    state = args.getState();
-//    data = args.getData();
-//}
-
-
 void SimpleTaskProgress::draw(float x, float y, float width, float height)
 {
     if (state == Poco::Task::TASK_FINISHED)
@@ -141,7 +132,15 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
 
     ss << name << " " << (progress * 100);
 
-    ss << " Data: " << data;
+    if (!data.empty())
+    {
+        ss << " Received : " << data;
+    }
+    else
+    {
+        ss << " Waiting for data ...";
+    }
+
 
     if (!errorMessage.empty())
     {

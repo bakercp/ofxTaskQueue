@@ -141,6 +141,7 @@ typedef TaskProgressEventArgs TaskFinishedEventArgs;
 /// \brief Event arguments for a Task failure event.
 ///
 /// \tparam DataType The custom event data type.
+
 template<typename DataType>
 class TaskDataEventArgs: public TaskProgressEventArgs
 {
@@ -243,7 +244,7 @@ protected:
 ///// callbacks.  That said, users must take more care when defining and handling
 ///// custom data events.  Events are passed as const references in order to
 ///// prevent the user from modifying data in the source thread.
-//template<typename DataType>
+//
 //class TaskQueueEvents
 //{
 //public:

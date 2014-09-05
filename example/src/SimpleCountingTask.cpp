@@ -65,10 +65,11 @@ void SimpleCountingTask::runTask()
         }
 
         // We occasionally post a data notification, using a string.
-        // Our TaskQueue_<std::string> can receive and process the
+        // Our TaskQueue can receive and process the
         // corresponding Poco::TaskCustomNotification, e.g.
         //
-        // Poco::TaskCustomNotification<std::string>
+        // Poco::TaskCustomNotification<std::string> or
+        // Poco::TaskCustomNotification<int> or
 
         float r = ofRandom(0, 1);
 

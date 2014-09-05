@@ -48,12 +48,10 @@ public:
     void onTaskFinished(const ofx::TaskFinishedEventArgs& args);
     void onTaskFailed(const ofx::TaskFailedEventArgs& args);
     void onTaskProgress(const ofx::TaskProgressEventArgs& args);
-//    void onTaskData(const ofx::TaskStringEventArgs& args);
 
     void onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs& args);
 
-    // Use the default std::string data queue.
-    ofx::TaskQueue_<std::string> queue;
+    ofx::TaskQueue queue;
 
     // Make a typedef for the map to make it shorter.
     typedef std::map<Poco::UUID, SimpleTaskProgress> TaskProgress;

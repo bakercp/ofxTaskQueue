@@ -28,6 +28,7 @@
 		E7F985F815E0DEA3003869B5 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7F985F515E0DE99003869B5 /* Accelerate.framework */; };
 		FD4402FD192BC560004059E2 /* SimpleCountingTask.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD4402FB192BC560004059E2 /* SimpleCountingTask.cpp */; };
 		FD440300192BD895004059E2 /* TaskQueueEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD4402FF192BD895004059E2 /* TaskQueueEvents.cpp */; };
+		FD8242BA19B96B800044535A /* TaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD8242B919B96B800044535A /* TaskQueue.cpp */; };
 		FDFF19EA195FB587003994BB /* SimpleTaskProgress.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FDFF19E8195FB587003994BB /* SimpleTaskProgress.cpp */; };
 /* End PBXBuildFile section */
 
@@ -91,6 +92,7 @@
 		FD4402FC192BC560004059E2 /* SimpleCountingTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleCountingTask.h; sourceTree = "<group>"; };
 		FD4402FE192BD858004059E2 /* TaskQueueEvents.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TaskQueueEvents.h; path = ../libs/ofxTaskQueue/includes/ofx/TaskQueueEvents.h; sourceTree = "<group>"; };
 		FD4402FF192BD895004059E2 /* TaskQueueEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TaskQueueEvents.cpp; path = ../libs/ofxTaskQueue/src/TaskQueueEvents.cpp; sourceTree = "<group>"; };
+		FD8242B919B96B800044535A /* TaskQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TaskQueue.cpp; path = ../libs/ofxTaskQueue/src/TaskQueue.cpp; sourceTree = "<group>"; };
 		FDFF19E8195FB587003994BB /* SimpleTaskProgress.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleTaskProgress.cpp; sourceTree = "<group>"; };
 		FDFF19E9195FB587003994BB /* SimpleTaskProgress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleTaskProgress.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -150,6 +152,7 @@
 		2c10de544fab57d1f656bdaa4d009d90 /* src */ = {
 			isa = PBXGroup;
 			children = (
+				FD8242B919B96B800044535A /* TaskQueue.cpp */,
 				FD4402FF192BD895004059E2 /* TaskQueueEvents.cpp */,
 			);
 			name = src;
@@ -360,6 +363,7 @@
 			files = (
 				E4B69E200A3A1BDC003C02F2 /* main.cpp in Sources */,
 				FD4402FD192BC560004059E2 /* SimpleCountingTask.cpp in Sources */,
+				FD8242BA19B96B800044535A /* TaskQueue.cpp in Sources */,
 				FDFF19EA195FB587003994BB /* SimpleTaskProgress.cpp in Sources */,
 				4b14cedcc7195a4d1f8e28b4f9635a89 /* ofApp.cpp in Sources */,
 				FD440300192BD895004059E2 /* TaskQueueEvents.cpp in Sources */,

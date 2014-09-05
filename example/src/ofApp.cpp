@@ -31,10 +31,16 @@ void ofApp::setup()
     ofEnableAlphaBlending();
     ofSetFrameRate(60);
 
+// Add capacity to the thread pool.
+//    Poco::ThreadPool::defaultPool().addCapacity(100);
+
+// Limit the maximum number of tasks for shared thread pools.
+//    queue.setMaximumTasks(50);
+
     // Register to receive task queue events.
     queue.registerTaskProgressEvents(this);
 
-    // Optionally listen for unfiltered notifications of all kinds.
+    // Optionally listen for task custom notifications.
     ofAddListener(queue.onTaskCustomNotification, this, &ofApp::onTaskCustomNotification);
 
     for (int i = 0; i < 1000; ++i)
@@ -178,11 +184,11 @@ void ofApp::onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs&
 
     if (args.extract(i))
     {
-        std::cout << "Parsed a custom notification event with int = " << i << std::endl;
+        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.getTaskId().toString() << " with int = " << i << std::endl;
     }
     else if (args.extract(message))
     {
-        std::cout << "Parsed a custom notification event with string = " << message << std::endl;
+        taskProgress[args.getTaskId()].data = message;
     }
     else
     {
