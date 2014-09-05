@@ -27,6 +27,7 @@
 
 
 #include "Poco/Exception.h"
+#include "Poco/TaskNotification.h"
 #include "Poco/Task.h"
 #include "Poco/UUID.h"
 #include "ofEvents.h"
@@ -139,7 +140,6 @@ typedef TaskProgressEventArgs TaskFinishedEventArgs;
 
 /// \brief Event arguments for a Task failure event.
 ///
-///
 /// \tparam DataType The custom event data type.
 template<typename DataType>
 class TaskDataEventArgs: public TaskProgressEventArgs
@@ -180,6 +180,61 @@ protected:
 };
 
 
+class TaskCustomNotificationEventArgs: public TaskProgressEventArgs
+{
+public:
+    /// \brief Create a TaskCustomNotificationEventArgs.
+    /// \param taskId The unique task id for the referenced task.
+    TaskCustomNotificationEventArgs(const Poco::UUID& taskId,
+                                    const std::string& taskName,
+                                    Poco::Task::TaskState state,
+                                    float progress,
+                                    Poco::TaskNotification::Ptr pNotification):
+        TaskProgressEventArgs(taskId,
+                              taskName,
+                              state,
+                              progress),
+        _pNotification(pNotification)
+    {
+    }
+
+    /// \brief Destroy the TaskCustomNotificationEventArgs.
+    virtual ~TaskCustomNotificationEventArgs()
+    {
+    }
+
+    /// \brief Get the custom task notification.
+    /// \returns the custom task notification.
+    Poco::Notification::Ptr getNotification() const
+    {
+        return _pNotification;
+    }
+
+    /// \brief A shortcut for extracting a copy of the data.
+    ///
+    /// To avoid copying the data, a custom data event must be generated.
+    template<typename DataType>
+    bool extract(DataType& data) const
+    {
+        Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskCustomNotification = 0;
+
+        if (!(taskCustomNotification = _pNotification.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
+        {
+            data = taskCustomNotification->custom();
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+protected:
+    Poco::TaskNotification::Ptr _pNotification;
+    
+};
+
+
 /// \brief A collection of TaskQueue events.
 ///
 /// Clients can subscribe to these events through the TaskQeueue.
@@ -212,7 +267,10 @@ public:
 
     /// \brief Event called when the Task sends a custom data notification.
     ofEvent<const TaskDataEventArgs<DataType> > onTaskData;
-    
+
+    /// \brief Event called when the Task sends an unhandled notification.
+    ofEvent<const TaskCustomNotificationEventArgs> onTaskCustomNotification;
+
 };
 
 

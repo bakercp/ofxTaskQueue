@@ -27,6 +27,29 @@
 
 
 #include "Poco/Task.h"
+#include "Poco/Notification.h"
+
+
+class CountingNotification: public Poco::Notification
+{
+public:
+    CountingNotification(int data): _data(data)
+    {
+    }
+
+    int data() const
+    {
+        return _data;
+    }
+
+    std::string name() const
+    {
+        return "CountingNotification";
+    }
+
+private:
+    int _data;
+};
 
 
 class SimpleCountingTask: public Poco::Task

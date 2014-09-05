@@ -50,6 +50,8 @@ public:
     void onTaskProgress(const ofx::TaskProgressEventArgs& args);
     void onTaskData(const ofx::TaskStringEventArgs& args);
 
+    void onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs& args);
+
     // Use the default std::string data queue.
     ofx::TaskQueue queue;
 

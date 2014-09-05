@@ -69,16 +69,23 @@ void SimpleCountingTask::runTask()
         // corresponding Poco::TaskCustomNotification, e.g.
         //
         // Poco::TaskCustomNotification<std::string>
-        if (ofRandom(0, 1) > 0.999)
+
+        float r = ofRandom(0, 1);
+
+        if (r > 0.999)
         {
             std::string txt = "Here's a random number: " + ofToString(ofRandom(1000));
 
             postNotification(new Poco::TaskCustomNotification<std::string>(this, txt));
         }
-
-        // We occasionally throw an exception to demonstrate error recovery.
-        if (ofRandom(0, 1) > 0.999)
+        else if (r > 0.998)
         {
+            // Send a task notification that is not handled by the onTaskData event.
+            postNotification(new Poco::TaskCustomNotification<int>(this, _currentNumber));
+        }
+        else if (r > 0.997)
+        {
+            // We occasionally throw an exception to demonstrate error recovery.
             throw Poco::Exception("Random Exception");
         }
     }

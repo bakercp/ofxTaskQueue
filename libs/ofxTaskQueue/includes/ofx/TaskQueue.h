@@ -114,17 +114,17 @@ public:
     /// \param pTask The task pointer of the Task to cancel.
     void cancel(TaskPtr pTask);
 
-    /// \brief Cancel a specific task by taskId.
-    /// \param taskId The taskId of the Task to cancel.
-    void cancel(const Poco::UUID& taskId);
+    /// \brief Cancel a specific task by taskID.
+    /// \param taskID The taskID of the Task to cancel.
+    void cancel(const Poco::UUID& taskID);
 
     /// \brief Request cancellation of all tasks, both queued and active.
     void cancelAll();
 
     /// \brief Get the name of a given task.
-    /// \param taskId The id of the desired task.
+    /// \param taskID The id of the desired task.
     /// \returns A string with the task name.
-    std::string getTaskName(const Poco::UUID& taskId) const;
+    std::string getTaskName(const Poco::UUID& taskID) const;
 
     /// \brief Waits for all active threads in the thread pool to complete.
     ///
@@ -203,22 +203,22 @@ public:
     };
 
 protected:
-    /// \brief Generate a unique taskId to return when starting a task.
+    /// \brief Generate a unique taskID to return when starting a task.
     /// \param tryCount An tryCount to limit the recusions.
     /// \returns An unused Poco::UUID.
-    Poco::UUID generateUniqueTaskId(std::size_t& tryCount) const;
+    Poco::UUID generateUniqueTaskID(std::size_t& tryCount) const;
 
     /// \brief Get a pointer to a Task given its taskID.
-    /// \param taskId The the taskId search key.
+    /// \param taskID The the taskID search key.
     /// \return Return a pointer to the Task matching task or 0 if not found.
-    TaskPtr getTaskPtr(const Poco::UUID& taskId) const;
+    TaskPtr getTaskPtr(const Poco::UUID& taskID) const;
 
-    /// \brief Get the taskId for a given Task.
+    /// \brief Get the taskID for a given Task.
     /// \param pTask The task search key.
-    /// \return Return the unique taskId for the matching task or a NULL UUID.
+    /// \return Return the unique taskID for the matching task or a NULL UUID.
     Poco::UUID getTaskId(const TaskPtr& pTask) const;
 
-    /// \brief Handle all custom user notifications from the Notification queue.
+    /// \brief Handle all custom task notifications from the Notification queue.
     ///
     /// By default this method handles the custom DataType notifications.  If
     /// desired, the subclasses can override this method and add additional
@@ -226,12 +226,10 @@ protected:
     /// TaskDataEventArgs currently does.  The subclass must then host those
     /// additional events as a member variable.
     ///
-    /// \param task An auto pointer to the associated task.
-    /// \param taskId a task id for passed task.
+    /// \param taskID the task UUID.
     /// \param pNotification a pointer to the notification.
-    virtual void handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
-                                        const Poco::UUID& taskId,
-                                        Poco::Notification::Ptr pNotification);
+    virtual void handleTaskCustomNotification(const Poco::UUID& taskID,
+                                              Poco::AutoPtr<Poco::TaskNotification> pNotification);
 
 private:
     /// \brief A typedef for a task list.
@@ -264,11 +262,11 @@ private:
     /// This number may also limited by the maximum size of the thread pool.
     int _maximumTasks;
 
-    /// \brief A map of the taskId to the Task pointer.
-    IdTaskMap _idTaskMap;
+    /// \brief A map of the taskID to the Task pointer.
+    IdTaskMap _IDTaskMap;
 
-    /// \brief A map of the Task pointer to the taskId.
-    TaskIdMap _taskIdMap;
+    /// \brief A map of the Task pointer to the taskID.
+    TaskIdMap _taskIDMap;
 
     /// \brief A list of tasks waiting to be submitted to the TaskManager.
     TaskList _queuedTasks;
@@ -353,7 +351,7 @@ void TaskQueue_<DataType>::update(ofEventArgs& args)
             else
             {
                 // We duplicate the task in order to share ownership and
-                // preserve our own pointer references for taskId lookup etc.
+                // preserve our own pointer references for taskID lookup etc.
                 _taskManager.start((*queuedTasksIter).duplicate());
                 _queuedTasks.erase(queuedTasksIter++); // If it was started, then remove.
             }
@@ -412,24 +410,24 @@ Poco::UUID TaskQueue_<DataType>::start(Poco::Task* pRawTask)
 
     // Generate a unique task id.
     std::size_t tryCount = 0;
-    Poco::UUID taskId = generateUniqueTaskId(tryCount);
+    Poco::UUID taskID = generateUniqueTaskID(tryCount);
 
-    // Add the task to the forward taskId / task map.
-    _idTaskMap[taskId] = pAutoTask;
+    // Add the task to the forward taskID / task map.
+    _IDTaskMap[taskID] = pAutoTask;
 
-    // Add the task to the reverse task / taskId map.
-    _taskIdMap[pAutoTask] = taskId;
+    // Add the task to the reverse task / taskID map.
+    _taskIDMap[pAutoTask] = taskID;
 
     // Queue our task for an immediate start on the next update call.
     _queuedTasks.push_back(pAutoTask);
 
-    TaskQueuedEventArgs args(taskId,
+    TaskQueuedEventArgs args(taskID,
                              pAutoTask->name(),
                              pAutoTask->state());
 
     ofNotifyEvent(events.onTaskQueued, args, this);
 
-    return taskId;
+    return taskID;
 }
 
 
@@ -468,9 +466,9 @@ void TaskQueue_<DataType>::cancel(TaskPtr taskPtr)
 
 
 template<typename DataType>
-void TaskQueue_<DataType>::cancel(const Poco::UUID& taskId)
+void TaskQueue_<DataType>::cancel(const Poco::UUID& taskID)
 {
-    TaskPtr taskPtr = getTaskPtr(taskId);
+    TaskPtr taskPtr = getTaskPtr(taskID);
 
     if (!taskPtr.isNull())
     {
@@ -478,7 +476,7 @@ void TaskQueue_<DataType>::cancel(const Poco::UUID& taskId)
     }
     else
     {
-        ofLogFatalError("TaskQueue::cancel") << "Unknown taskId: " << taskId.toString();
+        ofLogFatalError("TaskQueue::cancel") << "Unknown taskID: " << taskID.toString();
     }
 }
 
@@ -509,9 +507,9 @@ void TaskQueue_<DataType>::cancelAll()
 
 
 template<typename DataType>
-std::string TaskQueue_<DataType>::getTaskName(const Poco::UUID& taskId) const
+std::string TaskQueue_<DataType>::getTaskName(const Poco::UUID& taskID) const
 {
-    if (Poco::AutoPtr<Poco::Task> ptr = getTaskPtr(taskId))
+    if (Poco::AutoPtr<Poco::Task> ptr = getTaskPtr(taskID))
     {
         return ptr->name();
     }
@@ -541,25 +539,30 @@ void TaskQueue_<DataType>::onNotification(Poco::TaskNotification* pNf)
 
 
 template<typename DataType>
-void TaskQueue_<DataType>::handleUserNotification(Poco::AutoPtr<Poco::TaskNotification> task,
-                                                  const Poco::UUID& taskId,
-                                                  Poco::Notification::Ptr pNotification)
+void TaskQueue_<DataType>::handleTaskCustomNotification(const Poco::UUID& taskID,
+                                                        Poco::AutoPtr<Poco::TaskNotification> pNotification)
 {
-    Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskData = 0;
+    Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskCustomNotification = 0;
 
-    if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
+    if (!(taskCustomNotification = pNotification.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
     {
-        TaskDataEventArgs<DataType> args(taskId,
-                                         task->task()->name(),
-                                         task->task()->state(),
-                                         task->task()->progress(),
-                                         taskData->custom());
+        TaskDataEventArgs<DataType> args(taskID,
+                                         pNotification->task()->name(),
+                                         pNotification->task()->state(),
+                                         pNotification->task()->progress(),
+                                         taskCustomNotification->custom());
 
         ofNotifyEvent(events.onTaskData, args, this);
     }
     else
     {
-        ofLogFatalError("TaskQueue::handleNotification") << "Unknown Task Subclass.";
+        TaskCustomNotificationEventArgs args(taskID,
+                                             pNotification->task()->name(),
+                                             pNotification->task()->state(),
+                                             pNotification->task()->progress(),
+                                             pNotification);
+
+        ofNotifyEvent(events.onTaskCustomNotification, args, this);
     }
 }
 
@@ -567,13 +570,13 @@ void TaskQueue_<DataType>::handleUserNotification(Poco::AutoPtr<Poco::TaskNotifi
 template<typename DataType>
 void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotification)
 {
-    Poco::AutoPtr<Poco::TaskNotification> task = 0;
+    Poco::AutoPtr<Poco::TaskNotification> pTaskNotification = 0;
 
-    if (!(task = pNotification.cast<Poco::TaskNotification>()).isNull())
+    if (!(pTaskNotification = pNotification.cast<Poco::TaskNotification>()).isNull())
     {
-        Poco::UUID taskId;
+        Poco::UUID taskID;
 
-        if (!(taskId = getTaskId(task->task())).isNull())
+        if (!(taskID = getTaskId(pTaskNotification->task())).isNull())
         {
             // Now determine what kind of task notification we have.
             Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = 0;
@@ -581,47 +584,46 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
             Poco::AutoPtr<Poco::TaskFinishedNotification> taskFinished = 0;
             Poco::AutoPtr<Poco::TaskFailedNotification> taskFailed = 0;
             Poco::AutoPtr<Poco::TaskProgressNotification> taskProgress = 0;
-            Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskData = 0;
 
-            if (!(taskStarted = task.cast<Poco::TaskStartedNotification>()).isNull())
+            if (!(taskStarted = pTaskNotification.cast<Poco::TaskStartedNotification>()).isNull())
             {
-                TaskStartedEventArgs args(taskId,
-                                          task->task()->name(),
+                TaskStartedEventArgs args(taskID,
+                                          pTaskNotification->task()->name(),
                                           Poco::Task::TASK_STARTING,
-                                          task->task()->progress());
+                                          pTaskNotification->task()->progress());
 
                 ofNotifyEvent(events.onTaskStarted, args, this);
             }
-            else if (!(taskCancelled = task.cast<Poco::TaskCancelledNotification>()).isNull())
+            else if (!(taskCancelled = pTaskNotification.cast<Poco::TaskCancelledNotification>()).isNull())
             {
                 // Here we force the
-                TaskCancelledEventArgs args(taskId,
-                                            task->task()->name(),
+                TaskCancelledEventArgs args(taskID,
+                                            pTaskNotification->task()->name(),
                                             Poco::Task::TASK_CANCELLING,
-                                            task->task()->progress());
+                                            pTaskNotification->task()->progress());
 
                 ofNotifyEvent(events.onTaskCancelled, args, this);
             }
-            else if (!(taskFinished = task.cast<Poco::TaskFinishedNotification>()).isNull())
+            else if (!(taskFinished = pTaskNotification.cast<Poco::TaskFinishedNotification>()).isNull())
             {
-                TaskFinishedEventArgs args(taskId,
-                                           task->task()->name(),
+                TaskFinishedEventArgs args(taskID,
+                                           pTaskNotification->task()->name(),
                                            Poco::Task::TASK_FINISHED,
-                                           task->task()->progress());
+                                           pTaskNotification->task()->progress());
 
                 ofNotifyEvent(events.onTaskFinished, args, this);
 
-                IdTaskMap::iterator iterForward = _idTaskMap.find(taskId);
+                IdTaskMap::iterator iterForward = _IDTaskMap.find(taskID);
 
-                if (iterForward != _idTaskMap.end())
+                if (iterForward != _IDTaskMap.end())
                 {
-                    TaskIdMap::iterator iterReverse = _taskIdMap.find(iterForward->second);
+                    TaskIdMap::iterator iterReverse = _taskIDMap.find(iterForward->second);
 
-                    _idTaskMap.erase(iterForward);
+                    _IDTaskMap.erase(iterForward);
 
-                    if (iterReverse != _taskIdMap.end())
+                    if (iterReverse != _taskIDMap.end())
                     {
-                        _taskIdMap.erase(iterReverse);
+                        _taskIDMap.erase(iterReverse);
                     }
                     else
                     {
@@ -633,38 +635,27 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
                     ofLogFatalError("TaskQueue::handleNotification") << "Unable to find forwardIter.";
                 }
             }
-            else if (!(taskFailed = task.cast<Poco::TaskFailedNotification>()).isNull())
+            else if (!(taskFailed = pTaskNotification.cast<Poco::TaskFailedNotification>()).isNull())
             {
-                TaskFailedEventArgs args(taskId,
-                                         task->task()->name(),
-                                         task->task()->state(),
+                TaskFailedEventArgs args(taskID,
+                                         pTaskNotification->task()->name(),
+                                         pTaskNotification->task()->state(),
                                          taskFailed->reason());
 
                 ofNotifyEvent(events.onTaskFailed, args, this);
             }
-            else if (!(taskProgress = task.cast<Poco::TaskProgressNotification>()).isNull())
+            else if (!(taskProgress = pTaskNotification.cast<Poco::TaskProgressNotification>()).isNull())
             {
-                TaskProgressEventArgs args(taskId,
-                                           task->task()->name(),
-                                           task->task()->state(),
+                TaskProgressEventArgs args(taskID,
+                                           pTaskNotification->task()->name(),
+                                           pTaskNotification->task()->state(),
                                            taskProgress->progress());
 
                 ofNotifyEvent(events.onTaskProgress, args, this);
             }
-            else if (!(taskData = task.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
-            {
-                TaskDataEventArgs<DataType> args(taskId,
-                                                 task->task()->name(),
-                                                 task->task()->state(),
-                                                 task->task()->progress(),
-                                                 taskData->custom());
-
-                ofNotifyEvent(events.onTaskData, args, this);
-            }
             else
             {
-                // It is not a standard notification, so treat it as a user event.
-                handleUserNotification(task, taskId, pNotification);
+                handleTaskCustomNotification(taskID, pTaskNotification);
             }
         }
         else
@@ -674,7 +665,7 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
     }
     else
     {
-        ofLogFatalError("TaskQueue::handleNotification") << "Notification is not a Poco::TaskNotification.";
+        ofLogFatalError("TaskQueue::handleNotification") << "Unknown notification type: " << pNotification->name();
     }
 }
 
@@ -684,7 +675,7 @@ bool TaskQueue_<DataType>::startTask(TaskPtr pTask)
     try
     {
         // We duplicate the task in order to share ownership and
-        // preserve our own pointer references for taskId lookup etc.
+        // preserve our own pointer references for taskID lookup etc.
         _taskManager.start(pTask);
         return true;
     }
@@ -714,9 +705,9 @@ bool TaskQueue_<DataType>::startTask(TaskPtr pTask)
 template<typename DataType>
 Poco::UUID TaskQueue_<DataType>::getTaskId(const Poco::AutoPtr<Poco::Task>& pNf) const
 {
-    TaskIdMap::const_iterator iter = _taskIdMap.find(pNf);
+    TaskIdMap::const_iterator iter = _taskIDMap.find(pNf);
 
-    if (iter != _taskIdMap.end())
+    if (iter != _taskIDMap.end())
     {
         return iter->second;
     }
@@ -798,20 +789,20 @@ void TaskQueue_<DataType>::setMaximumTasks(int maximumTasks)
 
 
 template<typename DataType>
-Poco::UUID TaskQueue_<DataType>::generateUniqueTaskId(std::size_t& tryCount) const
+Poco::UUID TaskQueue_<DataType>::generateUniqueTaskID(std::size_t& tryCount) const
 {
     ++tryCount;
 
     Poco::UUID uuid = Poco::UUIDGenerator::defaultGenerator().createOne();
 
-    if (_idTaskMap.find(uuid) != _idTaskMap.end())
+    if (_IDTaskMap.find(uuid) != _IDTaskMap.end())
     {
         if (tryCount > 1)
         {
             ofLogFatalError("TaskQueue::generateUniqueTaskId") << "Duplicate UUID generated.";
         }
 
-        return generateUniqueTaskId(tryCount);
+        return generateUniqueTaskID(tryCount);
     }
     else
     {
@@ -821,17 +812,17 @@ Poco::UUID TaskQueue_<DataType>::generateUniqueTaskId(std::size_t& tryCount) con
 
 
 template<typename DataType>
-Poco::AutoPtr<Poco::Task> TaskQueue_<DataType>::getTaskPtr(const Poco::UUID& taskId) const
+Poco::AutoPtr<Poco::Task> TaskQueue_<DataType>::getTaskPtr(const Poco::UUID& taskID) const
 {
-    IdTaskMap::const_iterator iter = _idTaskMap.find(taskId);
+    IdTaskMap::const_iterator iter = _IDTaskMap.find(taskID);
     
-    if (iter != _idTaskMap.end())
+    if (iter != _IDTaskMap.end())
     {
         return iter->second;
     }
     else
     {
-        ofLogWarning("TaskQueue_<DataType>::getTaskPtr") << "No task with id: " << taskId.toString();
+        ofLogWarning("TaskQueue_<DataType>::getTaskPtr") << "No task with id: " << taskID.toString();
         return 0;
     }
 }
