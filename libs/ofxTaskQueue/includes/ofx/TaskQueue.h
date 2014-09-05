@@ -185,16 +185,34 @@ public:
     /// \tparam ListenerClass The class type with the required callback methods.
     /// \param listener a pointer to the listening class (usually "this").
     template<class ListenerClass>
-    void registerTaskEvents(ListenerClass* listener);
+    void registerTaskProgressEvents(ListenerClass* listener);
 
     /// \brief Unregister event listeners.
     /// \tparam ListenerClass The class type with the required callback methods.
     /// \param listener a pointer to the listening class (usually "this").
     template<class ListenerClass>
-    void unregisterTaskEvents(ListenerClass* listener);
+    void unregisterTaskProgressEvents(ListenerClass* listener);
 
-    /// \brief The task event callbacks.
-    TaskQueueEvents<DataType> events;
+    /// \brief Event called when the Task is Queued.
+    ofEvent<const TaskQueuedEventArgs> onTaskQueued;
+
+    /// \brief Event called when the Task is started.
+    ofEvent<const TaskStartedEventArgs> onTaskStarted;
+
+    /// \brief Event called when the Task is cancelled.
+    ofEvent<const TaskCancelledEventArgs> onTaskCancelled;
+
+    /// \brief Event called when the Task is finished.
+    ofEvent<const TaskFinishedEventArgs> onTaskFinished;
+
+    /// \brief Event called when the Task failed.
+    ofEvent<const TaskFailedEventArgs> onTaskFailed;
+
+    /// \brief Event called when the Task reports its progress.
+    ofEvent<const TaskProgressEventArgs> onTaskProgress;
+
+    /// \brief Event called when the Task sends an unhandled notification.
+    ofEvent<const TaskCustomNotificationEventArgs> onTaskCustomNotification;
 
     enum
     {
@@ -282,9 +300,6 @@ private:
     Poco::TaskManager _taskManager;
 
 };
-
-/// \brief A typical task that can send std::string data events.
-typedef TaskQueue_<std::string> TaskQueue;
 
 
 template<typename DataType>
@@ -425,7 +440,7 @@ Poco::UUID TaskQueue_<DataType>::start(Poco::Task* pRawTask)
                              pAutoTask->name(),
                              pAutoTask->state());
 
-    ofNotifyEvent(events.onTaskQueued, args, this);
+    ofNotifyEvent(onTaskQueued, args, this);
 
     return taskID;
 }
@@ -542,28 +557,13 @@ template<typename DataType>
 void TaskQueue_<DataType>::handleTaskCustomNotification(const Poco::UUID& taskID,
                                                         Poco::AutoPtr<Poco::TaskNotification> pNotification)
 {
-    Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskCustomNotification = 0;
-
-    if (!(taskCustomNotification = pNotification.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
-    {
-        TaskDataEventArgs<DataType> args(taskID,
+    TaskCustomNotificationEventArgs args(taskID,
                                          pNotification->task()->name(),
                                          pNotification->task()->state(),
                                          pNotification->task()->progress(),
-                                         taskCustomNotification->custom());
+                                         pNotification);
 
-        ofNotifyEvent(events.onTaskData, args, this);
-    }
-    else
-    {
-        TaskCustomNotificationEventArgs args(taskID,
-                                             pNotification->task()->name(),
-                                             pNotification->task()->state(),
-                                             pNotification->task()->progress(),
-                                             pNotification);
-
-        ofNotifyEvent(events.onTaskCustomNotification, args, this);
-    }
+    ofNotifyEvent(onTaskCustomNotification, args, this);
 }
 
 
@@ -592,7 +592,7 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
                                           Poco::Task::TASK_STARTING,
                                           pTaskNotification->task()->progress());
 
-                ofNotifyEvent(events.onTaskStarted, args, this);
+                ofNotifyEvent(onTaskStarted, args, this);
             }
             else if (!(taskCancelled = pTaskNotification.cast<Poco::TaskCancelledNotification>()).isNull())
             {
@@ -602,7 +602,7 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
                                             Poco::Task::TASK_CANCELLING,
                                             pTaskNotification->task()->progress());
 
-                ofNotifyEvent(events.onTaskCancelled, args, this);
+                ofNotifyEvent(onTaskCancelled, args, this);
             }
             else if (!(taskFinished = pTaskNotification.cast<Poco::TaskFinishedNotification>()).isNull())
             {
@@ -611,7 +611,7 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
                                            Poco::Task::TASK_FINISHED,
                                            pTaskNotification->task()->progress());
 
-                ofNotifyEvent(events.onTaskFinished, args, this);
+                ofNotifyEvent(onTaskFinished, args, this);
 
                 IdTaskMap::iterator iterForward = _IDTaskMap.find(taskID);
 
@@ -642,7 +642,7 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
                                          pTaskNotification->task()->state(),
                                          taskFailed->reason());
 
-                ofNotifyEvent(events.onTaskFailed, args, this);
+                ofNotifyEvent(onTaskFailed, args, this);
             }
             else if (!(taskProgress = pTaskNotification.cast<Poco::TaskProgressNotification>()).isNull())
             {
@@ -651,7 +651,7 @@ void TaskQueue_<DataType>::handleNotification(Poco::Notification::Ptr pNotificat
                                            pTaskNotification->task()->state(),
                                            taskProgress->progress());
 
-                ofNotifyEvent(events.onTaskProgress, args, this);
+                ofNotifyEvent(onTaskProgress, args, this);
             }
             else
             {
@@ -720,29 +720,27 @@ Poco::UUID TaskQueue_<DataType>::getTaskId(const Poco::AutoPtr<Poco::Task>& pNf)
 
 template<typename DataType>
 template<typename ListenerClass>
-void TaskQueue_<DataType>::registerTaskEvents(ListenerClass* listener)
+void TaskQueue_<DataType>::registerTaskProgressEvents(ListenerClass* listener)
 {
-    ofAddListener(events.onTaskQueued, listener, &ListenerClass::onTaskQueued);
-    ofAddListener(events.onTaskStarted, listener, &ListenerClass::onTaskStarted);
-    ofAddListener(events.onTaskCancelled, listener, &ListenerClass::onTaskCancelled);
-    ofAddListener(events.onTaskFinished, listener, &ListenerClass::onTaskFinished);
-    ofAddListener(events.onTaskFailed, listener, &ListenerClass::onTaskFailed);
-    ofAddListener(events.onTaskProgress, listener, &ListenerClass::onTaskProgress);
-    ofAddListener(events.onTaskData, listener, &ListenerClass::onTaskData);
+    ofAddListener(onTaskQueued, listener, &ListenerClass::onTaskQueued);
+    ofAddListener(onTaskStarted, listener, &ListenerClass::onTaskStarted);
+    ofAddListener(onTaskCancelled, listener, &ListenerClass::onTaskCancelled);
+    ofAddListener(onTaskFinished, listener, &ListenerClass::onTaskFinished);
+    ofAddListener(onTaskFailed, listener, &ListenerClass::onTaskFailed);
+    ofAddListener(onTaskProgress, listener, &ListenerClass::onTaskProgress);
 }
 
 
 template<typename DataType>
 template<typename ListenerClass>
-void TaskQueue_<DataType>::unregisterTaskEvents(ListenerClass* listener)
+void TaskQueue_<DataType>::unregisterTaskProgressEvents(ListenerClass* listener)
 {
-    ofRemoveListener(events.onTaskQueued, listener, &ListenerClass::onTaskQueued);
-    ofRemoveListener(events.onTaskStarted, listener, &ListenerClass::onTaskStarted);
-    ofRemoveListener(events.onTaskCancelled, listener, &ListenerClass::onTaskCancelled);
-    ofRemoveListener(events.onTaskFinished, listener, &ListenerClass::onTaskFinished);
-    ofRemoveListener(events.onTaskFailed, listener, &ListenerClass::onTaskFailed);
-    ofRemoveListener(events.onTaskProgress, listener, &ListenerClass::onTaskProgress);
-    ofRemoveListener(events.onTaskData, listener, &ListenerClass::onTaskData);
+    ofRemoveListener(onTaskQueued, listener, &ListenerClass::onTaskQueued);
+    ofRemoveListener(onTaskStarted, listener, &ListenerClass::onTaskStarted);
+    ofRemoveListener(onTaskCancelled, listener, &ListenerClass::onTaskCancelled);
+    ofRemoveListener(onTaskFinished, listener, &ListenerClass::onTaskFinished);
+    ofRemoveListener(onTaskFailed, listener, &ListenerClass::onTaskFailed);
+    ofRemoveListener(onTaskProgress, listener, &ListenerClass::onTaskProgress);
 }
 
 

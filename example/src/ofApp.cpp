@@ -32,10 +32,10 @@ void ofApp::setup()
     ofSetFrameRate(60);
 
     // Register to receive task queue events.
-    queue.registerTaskEvents(this);
+    queue.registerTaskProgressEvents(this);
 
     // Optionally listen for unfiltered notifications of all kinds.
-    ofAddListener(queue.events.onTaskCustomNotification, this, &ofApp::onTaskCustomNotification);
+    ofAddListener(queue.onTaskCustomNotification, this, &ofApp::onTaskCustomNotification);
 
     for (int i = 0; i < 1000; ++i)
     {
@@ -109,10 +109,10 @@ void ofApp::draw()
 void ofApp::exit()
 {
     // It's a good practice to unregister the events.
-    queue.unregisterTaskEvents(this);
+    queue.unregisterTaskProgressEvents(this);
 
     // Unregister the optional notification listener.
-    ofRemoveListener(queue.events.onTaskCustomNotification,
+    ofRemoveListener(queue.onTaskCustomNotification,
                      this,
                      &ofApp::onTaskCustomNotification);
 }
@@ -171,19 +171,18 @@ void ofApp::onTaskProgress(const ofx::TaskProgressEventArgs& args)
 }
 
 
-void ofApp::onTaskData(const ofx::TaskStringEventArgs& args)
-{
-    taskProgress[args.getTaskId()].update(args);
-}
-
-
 void ofApp::onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs& args)
 {
     int i = 0;
+    std::string message;
 
     if (args.extract(i))
     {
         std::cout << "Parsed a custom notification event with int = " << i << std::endl;
+    }
+    else if (args.extract(message))
+    {
+        std::cout << "Parsed a custom notification event with string = " << message << std::endl;
     }
     else
     {

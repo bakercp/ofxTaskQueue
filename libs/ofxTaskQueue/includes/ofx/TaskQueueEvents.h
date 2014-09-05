@@ -235,47 +235,23 @@ protected:
 };
 
 
-/// \brief A collection of TaskQueue events.
-///
-/// Clients can subscribe to these events through the TaskQeueue.
-/// TaskQueueEvents are only called during the main thread, so the user can
-/// be assured that their program data will be thread-safe during event
-/// callbacks.  That said, users must take more care when defining and handling
-/// custom data events.  Events are passed as const references in order to
-/// prevent the user from modifying data in the source thread.
-template<typename DataType>
-class TaskQueueEvents
-{
-public:
-    /// \brief Event called when the Task is Queued.
-    ofEvent<const TaskQueuedEventArgs> onTaskQueued;
-
-    /// \brief Event called when the Task is started.
-    ofEvent<const TaskStartedEventArgs> onTaskStarted;
-
-    /// \brief Event called when the Task is cancelled.
-    ofEvent<const TaskCancelledEventArgs> onTaskCancelled;
-
-    /// \brief Event called when the Task is finished.
-    ofEvent<const TaskFinishedEventArgs> onTaskFinished;
-
-    /// \brief Event called when the Task failed.
-    ofEvent<const TaskFailedEventArgs> onTaskFailed;
-
-    /// \brief Event called when the Task reports its progress.
-    ofEvent<const TaskProgressEventArgs> onTaskProgress;
-
-    /// \brief Event called when the Task sends a custom data notification.
-    ofEvent<const TaskDataEventArgs<DataType> > onTaskData;
-
-    /// \brief Event called when the Task sends an unhandled notification.
-    ofEvent<const TaskCustomNotificationEventArgs> onTaskCustomNotification;
-
-};
-
-
-/// \brief A typedef corresponding the the default TaskQueue_<std::string>.
-typedef TaskDataEventArgs<std::string> TaskStringEventArgs;
+///// \brief A collection of TaskQueue events.
+/////
+///// Clients can subscribe to these events through the TaskQeueue.
+///// TaskQueueEvents are only called during the main thread, so the user can
+///// be assured that their program data will be thread-safe during event
+///// callbacks.  That said, users must take more care when defining and handling
+///// custom data events.  Events are passed as const references in order to
+///// prevent the user from modifying data in the source thread.
+//template<typename DataType>
+//class TaskQueueEvents
+//{
+//public:
+//
+//    /// \brief Event called when the Task sends a custom data notification.
+//    ofEvent<const TaskDataEventArgs<DataType> > onTaskData;
+//
+//};
 
 
 } // namespace ofx

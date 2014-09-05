@@ -43,7 +43,7 @@ public:
     void update(const ofx::BaseTaskEventArgs& args);
     void update(const ofx::TaskProgressEventArgs& args);
     void update(const ofx::TaskFailedEventArgs& args);
-    void update(const ofx::TaskStringEventArgs& args);
+//    void update(const ofx::TaskStringEventArgs& args);
 
     void draw(float x, float y, float width, float height);
 

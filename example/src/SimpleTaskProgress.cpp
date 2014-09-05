@@ -82,13 +82,13 @@ void SimpleTaskProgress::update(const ofx::TaskFailedEventArgs& args)
 }
 
 
-void SimpleTaskProgress::update(const ofx::TaskStringEventArgs& args)
-{
-    taskId = args.getTaskId();
-    name = args.getTaskName();
-    state = args.getState();
-    data = args.getData();
-}
+//void SimpleTaskProgress::update(const ofx::TaskStringEventArgs& args)
+//{
+//    taskId = args.getTaskId();
+//    name = args.getTaskName();
+//    state = args.getState();
+//    data = args.getData();
+//}
 
 
 void SimpleTaskProgress::draw(float x, float y, float width, float height)
