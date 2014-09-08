@@ -42,10 +42,10 @@ public:
 
     void keyPressed(int key);
 
-    void onTaskQueued(const ofx::TaskQueuedEventArgs& args);
-    void onTaskStarted(const ofx::TaskStartedEventArgs& args);
-    void onTaskCancelled(const ofx::TaskCancelledEventArgs& args);
-    void onTaskFinished(const ofx::TaskFinishedEventArgs& args);
+    void onTaskQueued(const ofx::TaskQueueEventArgs& args);
+    void onTaskStarted(const ofx::TaskQueueEventArgs& args);
+    void onTaskCancelled(const ofx::TaskQueueEventArgs& args);
+    void onTaskFinished(const ofx::TaskQueueEventArgs& args);
     void onTaskFailed(const ofx::TaskFailedEventArgs& args);
     void onTaskProgress(const ofx::TaskProgressEventArgs& args);
 

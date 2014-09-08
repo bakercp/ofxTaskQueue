@@ -38,34 +38,51 @@ namespace ofx {
 
 
 /// \brief A base class for Task events.
-class BaseTaskEventArgs: public ofEventArgs
+template<typename TaskHandle>
+class TaskQueueEventArgs_: public ofEventArgs
 {
 public:
     /// \brief Create a BaseTaskEventArgs.
     /// \param taskId The unique task id for the referenced Task.
     /// \param taskName The name of the referenced Task;
-    BaseTaskEventArgs(const Poco::UUID& taskId,
-                      const std::string& taskName,
-                      Poco::Task::TaskState state);
+    TaskQueueEventArgs_(const TaskHandle& taskID,
+                        const std::string& taskName,
+                        Poco::Task::TaskState state):
+        _taskID(taskID),
+        _taskName(taskName),
+        _state(state)
+    {
+    }
 
     /// \brief Destroy the BaseTaskEventArgs.
-    virtual ~BaseTaskEventArgs();
+    virtual ~TaskQueueEventArgs_()
+    {
+    }
 
     /// \brief Get the task id.
     /// \returns the task id.
-    const Poco::UUID& getTaskId() const;
+    const TaskHandle& getTaskId() const
+    {
+        return _taskID;
+    }
 
     /// \brief Get the task name.
     /// \returns the task name.
-    const std::string& getTaskName() const;
+    const std::string& getTaskName() const
+    {
+        return _taskName;
+    }
 
     /// \brief Get the State of the task.
     /// \returns the State of the task.
-    Poco::Task::TaskState getState() const;
+    Poco::Task::TaskState getState() const
+    {
+        return _state;
+    }
 
 protected:
     /// \brief The unique task id for the referenced task.
-    const Poco::UUID& _taskId;
+    const TaskHandle& _taskID;
 
     /// \brief The name of the given task.
     const std::string& _taskName;
@@ -76,28 +93,35 @@ protected:
 };
 
 
-typedef BaseTaskEventArgs TaskQueuedEventArgs;
-
-
 /// \brief Event arguments for a Task failure event.
-class TaskFailedEventArgs: public BaseTaskEventArgs
+template<typename TaskHandle>
+class TaskFailedEventArgs_: public TaskQueueEventArgs_<TaskHandle>
 {
 public:
     /// \brief Create a TaskFailedEventArgs.
     /// \param taskId The unique task id for the referenced Task.
     /// \param taskName The name of the referenced Task;
     /// \param exception The exception that caused the Task failure.
-    TaskFailedEventArgs(const Poco::UUID& taskId,
+    TaskFailedEventArgs_(const Poco::UUID& taskID,
                         const std::string& taskName,
                         Poco::Task::TaskState state,
-                        const Poco::Exception& exception);
+                        const Poco::Exception& exception):
+        TaskQueueEventArgs_<TaskHandle>(taskID, taskName, state),
+        _exception(exception)
+    {
+    }
 
     /// \brief Destroy the TaskFailedEventArgs.
-    virtual ~TaskFailedEventArgs();
+    virtual ~TaskFailedEventArgs_()
+    {
+    }
 
     /// \brief Get the exception.
     /// \returns the exception.
-    const Poco::Exception& getException() const;
+    const Poco::Exception& getException() const
+    {
+        return _exception;
+    }
 
 private:
     /// \brief The exception that caused the task failure.
@@ -107,24 +131,35 @@ private:
 
 
 /// \brief Event arguments for a Task progress event.
-class TaskProgressEventArgs: public BaseTaskEventArgs
+template<typename TaskHandle>
+class TaskProgressEventArgs_: public TaskQueueEventArgs_<TaskHandle>
 {
 public:
     /// \brief Create a TaskProgressEventArgs.
     /// \param taskId The unique task id for the referenced task.
     /// \param taskName The name of the referenced Task;
     /// \param progress The current progress (0.0 - 1.0).
-    TaskProgressEventArgs(const Poco::UUID& taskId,
-                          const std::string& taskName,
-                          Poco::Task::TaskState state,
-                          float progress);
+    TaskProgressEventArgs_(const TaskHandle& taskId,
+                           const std::string& taskName,
+                           Poco::Task::TaskState state,
+                           float progress):
+        TaskQueueEventArgs_<TaskHandle>(taskId, taskName, state),
+        _progress(progress)
+    {
+    }
+
 
     /// \brief Destroy the TaskProgressEventArgs.
-    virtual ~TaskProgressEventArgs();
+    virtual ~TaskProgressEventArgs_()
+    {
+    }
 
     /// \brief Get the current progress.
     /// \returns The current progress (0.0 - 1.0).
-    float getProgress() const;
+    float getProgress() const
+    {
+        return _progress;
+    }
 
 protected:
     /// \brief The Task's progress.
@@ -133,37 +168,29 @@ protected:
 };
 
 
-typedef TaskProgressEventArgs TaskStartedEventArgs;
-typedef TaskProgressEventArgs TaskCancelledEventArgs;
-typedef TaskProgressEventArgs TaskFinishedEventArgs;
-
-
 /// \brief Event arguments for a Task failure event.
 ///
+/// \tparam TaskHandle The task handle type.
 /// \tparam DataType The custom event data type.
-
-template<typename DataType>
-class TaskDataEventArgs: public TaskProgressEventArgs
+template<typename TaskHandle, typename DataType>
+class TaskDataEventArgs_: public TaskQueueEventArgs_<TaskHandle>
 {
 public:
     /// \brief Create a TaskDataEventArgs.
     /// \param taskId The unique task id for the referenced task.
     /// \param data The custom event data.
-    TaskDataEventArgs(const Poco::UUID& taskId,
-                      const std::string& taskName,
-                      Poco::Task::TaskState state,
-                      float progress,
-                      const DataType& data):
-        TaskProgressEventArgs(taskId,
-                              taskName,
-                              state,
-                              progress),
+    TaskDataEventArgs_(const TaskHandle& taskID,
+                       const std::string& taskName,
+                       Poco::Task::TaskState state,
+                       float progress,
+                       const DataType& data):
+        TaskQueueEventArgs_<TaskHandle>(taskID, taskName, state, progress),
         _data(data)
     {
     }
 
     /// \brief Destroy the TaskDataEventArgs.
-    virtual ~TaskDataEventArgs()
+    virtual ~TaskDataEventArgs_()
     {
     }
 
@@ -181,26 +208,27 @@ protected:
 };
 
 
-class TaskCustomNotificationEventArgs: public TaskProgressEventArgs
+template<typename TaskHandle>
+class TaskCustomNotificationEventArgs_: public TaskProgressEventArgs_<TaskHandle>
 {
 public:
     /// \brief Create a TaskCustomNotificationEventArgs.
     /// \param taskId The unique task id for the referenced task.
-    TaskCustomNotificationEventArgs(const Poco::UUID& taskId,
-                                    const std::string& taskName,
-                                    Poco::Task::TaskState state,
-                                    float progress,
-                                    Poco::TaskNotification::Ptr pNotification):
-        TaskProgressEventArgs(taskId,
-                              taskName,
-                              state,
-                              progress),
+    TaskCustomNotificationEventArgs_(const TaskHandle& taskID,
+                                     const std::string& taskName,
+                                     Poco::Task::TaskState state,
+                                     float progress,
+                                     Poco::TaskNotification::Ptr pNotification):
+        TaskProgressEventArgs_<TaskHandle>(taskID,
+                                           taskName,
+                                           state,
+                                           progress),
         _pNotification(pNotification)
     {
     }
 
-    /// \brief Destroy the TaskCustomNotificationEventArgs.
-    virtual ~TaskCustomNotificationEventArgs()
+    /// \brief Destroy the TaskCustomNotificationEventArgs_.
+    virtual ~TaskCustomNotificationEventArgs_()
     {
     }
 
@@ -236,23 +264,10 @@ protected:
 };
 
 
-///// \brief A collection of TaskQueue events.
-/////
-///// Clients can subscribe to these events through the TaskQeueue.
-///// TaskQueueEvents are only called during the main thread, so the user can
-///// be assured that their program data will be thread-safe during event
-///// callbacks.  That said, users must take more care when defining and handling
-///// custom data events.  Events are passed as const references in order to
-///// prevent the user from modifying data in the source thread.
-//
-//class TaskQueueEvents
-//{
-//public:
-//
-//    /// \brief Event called when the Task sends a custom data notification.
-//    ofEvent<const TaskDataEventArgs<DataType> > onTaskData;
-//
-//};
+typedef TaskQueueEventArgs_<Poco::UUID> TaskQueueEventArgs;
+typedef TaskProgressEventArgs_<Poco::UUID> TaskProgressEventArgs;
+typedef TaskFailedEventArgs_<Poco::UUID> TaskFailedEventArgs;
+typedef TaskCustomNotificationEventArgs_<Poco::UUID> TaskCustomNotificationEventArgs;
 
 
 } // namespace ofx

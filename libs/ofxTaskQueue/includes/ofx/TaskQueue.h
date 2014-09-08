@@ -198,25 +198,25 @@ public:
     void unregisterTaskProgressEvents(ListenerClass* listener);
 
     /// \brief Event called when the Task is Queued.
-    ofEvent<const TaskQueuedEventArgs> onTaskQueued;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskQueued;
 
     /// \brief Event called when the Task is started.
-    ofEvent<const TaskStartedEventArgs> onTaskStarted;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskStarted;
 
     /// \brief Event called when the Task is cancelled.
-    ofEvent<const TaskCancelledEventArgs> onTaskCancelled;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskCancelled;
 
     /// \brief Event called when the Task is finished.
-    ofEvent<const TaskFinishedEventArgs> onTaskFinished;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskFinished;
 
     /// \brief Event called when the Task failed.
-    ofEvent<const TaskFailedEventArgs> onTaskFailed;
+    ofEvent<const TaskFailedEventArgs_<TaskHandle> > onTaskFailed;
 
     /// \brief Event called when the Task reports its progress.
-    ofEvent<const TaskProgressEventArgs> onTaskProgress;
+    ofEvent<const TaskProgressEventArgs_<TaskHandle> > onTaskProgress;
 
     /// \brief Event called when the Task sends an unhandled notification.
-    ofEvent<const TaskCustomNotificationEventArgs> onTaskCustomNotification;
+    ofEvent<const TaskCustomNotificationEventArgs_<TaskHandle> > onTaskCustomNotification;
 
     enum
     {
@@ -436,9 +436,9 @@ TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, Poco::Task* p
     // Queue our task for an immediate start on the next update call.
     _queuedTasks.push_back(pAutoTask);
 
-    TaskQueuedEventArgs args(taskID,
-                             pAutoTask->name(),
-                             pAutoTask->state());
+    TaskQueueEventArgs_<TaskHandle> args(taskID,
+                                         pAutoTask->name(),
+                                         pAutoTask->state());
 
     ofNotifyEvent(onTaskQueued, args, this);
 
@@ -571,11 +571,11 @@ template<typename TaskHandle>
 void TaskQueue_<TaskHandle>::handleTaskCustomNotification(const TaskHandle& taskID,
                                                          Poco::AutoPtr<Poco::TaskNotification> pNotification)
 {
-    TaskCustomNotificationEventArgs args(taskID,
-                                         pNotification->task()->name(),
-                                         pNotification->task()->state(),
-                                         pNotification->task()->progress(),
-                                         pNotification);
+    TaskCustomNotificationEventArgs_<TaskHandle> args(taskID,
+                                                      pNotification->task()->name(),
+                                                      pNotification->task()->state(),
+                                                      pNotification->task()->progress(),
+                                                      pNotification);
 
     ofNotifyEvent(onTaskCustomNotification, args, this);
 }
@@ -588,7 +588,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
 
     if (!(pTaskNotification = pNotification.cast<Poco::TaskNotification>()).isNull())
     {
-        Poco::UUID taskID;
+        TaskHandle taskID;
 
         if (!(taskID = getTaskId(pTaskNotification->task())).isNull())
         {
@@ -601,29 +601,31 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
 
             if (!(taskStarted = pTaskNotification.cast<Poco::TaskStartedNotification>()).isNull())
             {
-                TaskStartedEventArgs args(taskID,
-                                          pTaskNotification->task()->name(),
-                                          Poco::Task::TASK_STARTING,
-                                          pTaskNotification->task()->progress());
+
+            
+                TaskProgressEventArgs_<TaskHandle> args(taskID,
+                                                        pTaskNotification->task()->name(),
+                                                        Poco::Task::TASK_STARTING,
+                                                        pTaskNotification->task()->progress());
 
                 ofNotifyEvent(onTaskStarted, args, this);
             }
             else if (!(taskCancelled = pTaskNotification.cast<Poco::TaskCancelledNotification>()).isNull())
             {
                 // Here we force the
-                TaskCancelledEventArgs args(taskID,
-                                            pTaskNotification->task()->name(),
-                                            Poco::Task::TASK_CANCELLING,
-                                            pTaskNotification->task()->progress());
+                TaskProgressEventArgs_<TaskHandle> args(taskID,
+                                                        pTaskNotification->task()->name(),
+                                                        Poco::Task::TASK_CANCELLING,
+                                                        pTaskNotification->task()->progress());
 
                 ofNotifyEvent(onTaskCancelled, args, this);
             }
             else if (!(taskFinished = pTaskNotification.cast<Poco::TaskFinishedNotification>()).isNull())
             {
-                TaskFinishedEventArgs args(taskID,
-                                           pTaskNotification->task()->name(),
-                                           Poco::Task::TASK_FINISHED,
-                                           pTaskNotification->task()->progress());
+                TaskProgressEventArgs_<TaskHandle> args(taskID,
+                                                        pTaskNotification->task()->name(),
+                                                        Poco::Task::TASK_FINISHED,
+                                                        pTaskNotification->task()->progress());
 
                 ofNotifyEvent(onTaskFinished, args, this);
 
@@ -728,7 +730,7 @@ TaskHandle TaskQueue_<TaskHandle>::getTaskId(const Poco::AutoPtr<Poco::Task>& pN
     }
     else
     {
-        return Poco::UUID::null();
+        throw Poco::Exception("Task does not exist.");
     }
 }
 

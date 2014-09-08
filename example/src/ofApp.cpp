@@ -137,25 +137,25 @@ void ofApp::keyPressed(int key)
 }
 
 
-void ofApp::onTaskQueued(const ofx::TaskQueuedEventArgs& args)
+void ofApp::onTaskQueued(const ofx::TaskQueueEventArgs& args)
 {
     taskProgress[args.getTaskId()] = SimpleTaskProgress(args);
 }
 
 
-void ofApp::onTaskStarted(const ofx::TaskStartedEventArgs& args)
+void ofApp::onTaskStarted(const ofx::TaskQueueEventArgs& args)
 {
     taskProgress[args.getTaskId()].update(args);
 }
 
 
-void ofApp::onTaskCancelled(const ofx::TaskCancelledEventArgs& args)
+void ofApp::onTaskCancelled(const ofx::TaskQueueEventArgs& args)
 {
     taskProgress[args.getTaskId()].update(args);
 }
 
 
-void ofApp::onTaskFinished(const ofx::TaskFinishedEventArgs& args)
+void ofApp::onTaskFinished(const ofx::TaskQueueEventArgs& args)
 {
     // This is always called last, even after a task failure.
     // We do not remove the task progress here because we want to

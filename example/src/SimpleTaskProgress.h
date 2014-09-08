@@ -36,11 +36,11 @@ class SimpleTaskProgress
 {
 public:
     SimpleTaskProgress();
-    SimpleTaskProgress(const ofx::BaseTaskEventArgs& args);
+    SimpleTaskProgress(const ofx::TaskQueueEventArgs& args);
 
     virtual ~SimpleTaskProgress();
 
-    void update(const ofx::BaseTaskEventArgs& args);
+    void update(const ofx::TaskQueueEventArgs& args);
     void update(const ofx::TaskProgressEventArgs& args);
     void update(const ofx::TaskFailedEventArgs& args);
 

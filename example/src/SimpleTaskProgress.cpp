@@ -39,7 +39,7 @@ SimpleTaskProgress::SimpleTaskProgress():
 }
 
 
-SimpleTaskProgress::SimpleTaskProgress(const ofx::BaseTaskEventArgs& args):
+SimpleTaskProgress::SimpleTaskProgress(const ofx::TaskQueueEventArgs& args):
     taskId(args.getTaskId()),
     name(args.getTaskName()),
     state(args.getState()),
@@ -56,7 +56,7 @@ SimpleTaskProgress::~SimpleTaskProgress()
 }
 
 
-void SimpleTaskProgress::update(const ofx::BaseTaskEventArgs& args)
+void SimpleTaskProgress::update(const ofx::TaskQueueEventArgs& args)
 {
     taskId = args.getTaskId();
     name = args.getTaskName();
