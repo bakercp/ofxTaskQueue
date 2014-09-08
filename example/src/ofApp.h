@@ -51,7 +51,7 @@ public:
 
     void onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs& args);
 
-    ofx::TaskQueue queue;
+    ofx::TaskQueue<Poco::UUID> queue;
 
     // Make a typedef for the map to make it shorter.
     typedef std::map<Poco::UUID, SimpleTaskProgress> TaskProgress;
