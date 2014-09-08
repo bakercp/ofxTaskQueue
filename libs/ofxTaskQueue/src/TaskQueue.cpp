@@ -31,6 +31,21 @@
 namespace ofx {
 
 
+TaskQueue::TaskQueue(int maximumTasks): BaseTaskQueue<Poco::UUID>(maximumTasks)
+{
+}
+
+
+TaskQueue::TaskQueue(int maximumTasks,
+                     Poco::ThreadPool& threadPool):
+    BaseTaskQueue<Poco::UUID>(maximumTasks, threadPool)
+{
+}
+
+
+TaskQueue::~TaskQueue()
+{
+}
 
     
 } // namespace ofx

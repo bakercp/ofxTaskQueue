@@ -88,6 +88,7 @@
 		E7E077E415D3B63C0020DFD4 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = /System/Library/Frameworks/CoreVideo.framework; sourceTree = "<absolute>"; };
 		E7E077E715D3B6510020DFD4 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = /System/Library/Frameworks/QTKit.framework; sourceTree = "<absolute>"; };
 		E7F985F515E0DE99003869B5 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = /System/Library/Frameworks/Accelerate.framework; sourceTree = "<absolute>"; };
+		FD24741C19BE4B3600B00D8C /* BaseTaskQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BaseTaskQueue.h; path = ../libs/ofxTaskQueue/includes/ofx/BaseTaskQueue.h; sourceTree = "<group>"; };
 		FD4402FB192BC560004059E2 /* SimpleCountingTask.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleCountingTask.cpp; sourceTree = "<group>"; };
 		FD4402FC192BC560004059E2 /* SimpleCountingTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleCountingTask.h; sourceTree = "<group>"; };
 		FD4402FE192BD858004059E2 /* TaskQueueEvents.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TaskQueueEvents.h; path = ../libs/ofxTaskQueue/includes/ofx/TaskQueueEvents.h; sourceTree = "<group>"; };
@@ -251,6 +252,7 @@
 		c38eda27aba6842a4364dfee5f17fa3c /* ofx */ = {
 			isa = PBXGroup;
 			children = (
+				FD24741C19BE4B3600B00D8C /* BaseTaskQueue.h */,
 				FD4402FE192BD858004059E2 /* TaskQueueEvents.h */,
 				62ec403aa144bde0305c199077ac6020 /* TaskQueue.h */,
 			);
