@@ -28,7 +28,6 @@
 		E7F985F815E0DEA3003869B5 /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = E7F985F515E0DE99003869B5 /* Accelerate.framework */; };
 		FD4402FD192BC560004059E2 /* SimpleCountingTask.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD4402FB192BC560004059E2 /* SimpleCountingTask.cpp */; };
 		FD440300192BD895004059E2 /* TaskQueueEvents.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD4402FF192BD895004059E2 /* TaskQueueEvents.cpp */; };
-		FD8242BA19B96B800044535A /* TaskQueue.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FD8242B919B96B800044535A /* TaskQueue.cpp */; };
 		FDFF19EA195FB587003994BB /* SimpleTaskProgress.cpp in Sources */ = {isa = PBXBuildFile; fileRef = FDFF19E8195FB587003994BB /* SimpleTaskProgress.cpp */; };
 /* End PBXBuildFile section */
 
@@ -65,7 +64,6 @@
 /* Begin PBXFileReference section */
 		19c22cd05d10f78b32ff80c6be3a9385 /* ofApp.cpp */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 30; name = ofApp.cpp; path = src/ofApp.cpp; sourceTree = SOURCE_ROOT; };
 		34a444536eee748a3e48527f9e26c433 /* ofxTaskQueue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ofxTaskQueue.h; path = ../../../addons/ofxTaskQueue/src/ofxTaskQueue.h; sourceTree = SOURCE_ROOT; };
-		62ec403aa144bde0305c199077ac6020 /* TaskQueue.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = TaskQueue.h; path = ../../../addons/ofxTaskQueue/libs/ofxTaskQueue/includes/ofx/TaskQueue.h; sourceTree = SOURCE_ROOT; };
 		84f6287fa54b66c746947875f6690182 /* ofApp.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.c.h; fileEncoding = 30; name = ofApp.h; path = src/ofApp.h; sourceTree = SOURCE_ROOT; };
 		BBAB23BE13894E4700AA2426 /* GLUT.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GLUT.framework; path = ../../../libs/glut/lib/osx/GLUT.framework; sourceTree = "<group>"; };
 		E4328143138ABC890047C5CB /* openFrameworksLib.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = openFrameworksLib.xcodeproj; path = ../../../libs/openFrameworksCompiled/project/osx/openFrameworksLib.xcodeproj; sourceTree = SOURCE_ROOT; };
@@ -88,12 +86,11 @@
 		E7E077E415D3B63C0020DFD4 /* CoreVideo.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CoreVideo.framework; path = /System/Library/Frameworks/CoreVideo.framework; sourceTree = "<absolute>"; };
 		E7E077E715D3B6510020DFD4 /* QTKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QTKit.framework; path = /System/Library/Frameworks/QTKit.framework; sourceTree = "<absolute>"; };
 		E7F985F515E0DE99003869B5 /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = /System/Library/Frameworks/Accelerate.framework; sourceTree = "<absolute>"; };
-		FD24741C19BE4B3600B00D8C /* BaseTaskQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = BaseTaskQueue.h; path = ../libs/ofxTaskQueue/includes/ofx/BaseTaskQueue.h; sourceTree = "<group>"; };
+		FD24741C19BE4B3600B00D8C /* TaskQueue.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TaskQueue.h; path = ../libs/ofxTaskQueue/includes/ofx/TaskQueue.h; sourceTree = "<group>"; };
 		FD4402FB192BC560004059E2 /* SimpleCountingTask.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleCountingTask.cpp; sourceTree = "<group>"; };
 		FD4402FC192BC560004059E2 /* SimpleCountingTask.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleCountingTask.h; sourceTree = "<group>"; };
 		FD4402FE192BD858004059E2 /* TaskQueueEvents.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TaskQueueEvents.h; path = ../libs/ofxTaskQueue/includes/ofx/TaskQueueEvents.h; sourceTree = "<group>"; };
 		FD4402FF192BD895004059E2 /* TaskQueueEvents.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TaskQueueEvents.cpp; path = ../libs/ofxTaskQueue/src/TaskQueueEvents.cpp; sourceTree = "<group>"; };
-		FD8242B919B96B800044535A /* TaskQueue.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TaskQueue.cpp; path = ../libs/ofxTaskQueue/src/TaskQueue.cpp; sourceTree = "<group>"; };
 		FDFF19E8195FB587003994BB /* SimpleTaskProgress.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = SimpleTaskProgress.cpp; sourceTree = "<group>"; };
 		FDFF19E9195FB587003994BB /* SimpleTaskProgress.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SimpleTaskProgress.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -153,7 +150,6 @@
 		2c10de544fab57d1f656bdaa4d009d90 /* src */ = {
 			isa = PBXGroup;
 			children = (
-				FD8242B919B96B800044535A /* TaskQueue.cpp */,
 				FD4402FF192BD895004059E2 /* TaskQueueEvents.cpp */,
 			);
 			name = src;
@@ -252,9 +248,8 @@
 		c38eda27aba6842a4364dfee5f17fa3c /* ofx */ = {
 			isa = PBXGroup;
 			children = (
-				FD24741C19BE4B3600B00D8C /* BaseTaskQueue.h */,
+				FD24741C19BE4B3600B00D8C /* TaskQueue.h */,
 				FD4402FE192BD858004059E2 /* TaskQueueEvents.h */,
-				62ec403aa144bde0305c199077ac6020 /* TaskQueue.h */,
 			);
 			name = ofx;
 			sourceTree = "<group>";
@@ -365,7 +360,6 @@
 			files = (
 				E4B69E200A3A1BDC003C02F2 /* main.cpp in Sources */,
 				FD4402FD192BC560004059E2 /* SimpleCountingTask.cpp in Sources */,
-				FD8242BA19B96B800044535A /* TaskQueue.cpp in Sources */,
 				FDFF19EA195FB587003994BB /* SimpleTaskProgress.cpp in Sources */,
 				4b14cedcc7195a4d1f8e28b4f9635a89 /* ofApp.cpp in Sources */,
 				FD440300192BD895004059E2 /* TaskQueueEvents.cpp in Sources */,
