@@ -173,7 +173,7 @@ protected:
 /// \tparam TaskHandle The task handle type.
 /// \tparam DataType The custom event data type.
 template<typename TaskHandle, typename DataType>
-class TaskDataEventArgs_: public TaskQueueEventArgs_<TaskHandle>
+class TaskDataEventArgs_: public TaskProgressEventArgs_<TaskHandle>
 {
 public:
     /// \brief Create a TaskDataEventArgs.
@@ -184,7 +184,7 @@ public:
                        Poco::Task::TaskState state,
                        float progress,
                        const DataType& data):
-        TaskQueueEventArgs_<TaskHandle>(taskID, taskName, state, progress),
+        TaskProgressEventArgs_<TaskHandle>(taskID, taskName, state, progress),
         _data(data)
     {
     }

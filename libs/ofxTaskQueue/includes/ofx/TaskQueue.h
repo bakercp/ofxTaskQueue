@@ -104,9 +104,12 @@ public:
     /// \brief Starts the given task in a thread obtained from the thread pool.
     ///
     /// The TaskManager immediately takes ownership of the Task object and
-    /// releases and deletes it when it is finished.
+    /// releases and deletes it when it is finished.  It is recommended that
+    /// users no longer interact directly with the task to preserve the task's
+    /// data integrity.
     ///
     /// \param pTask a raw pointer to a task to be queued.
+    /// \throws Poco::ExistsException if the taskID already exists.
     TaskHandle start(const TaskHandle& taskID, Poco::Task* pTask);
 
     /// \brief Cancel a specific task by pointer.
@@ -120,15 +123,11 @@ public:
     /// \brief Request cancellation of all tasks, both queued and active.
     void cancelAll();
 
-    bool inQueue(TaskPtr pTask) const;
+    /// \returns true iff the provided task exists.
+    bool exists(TaskPtr pTask) const;
 
-    bool inQueue(const TaskHandle& taskID) const;
-
-
-    /// \brief Get the name of a given task.
-    /// \param taskID The id of the desired task.
-    /// \returns A string with the task name.
-    std::string getTaskName(const TaskHandle& taskID) const;
+    /// \returns true if the provided task handle exists.
+    bool exists(const TaskHandle& taskID) const;
 
     /// \brief Waits for all active threads in the thread pool to complete.
     ///
@@ -216,6 +215,9 @@ public:
     ofEvent<const TaskProgressEventArgs_<TaskHandle> > onTaskProgress;
 
     /// \brief Event called when the Task sends an unhandled notification.
+    ///
+    /// To make best use of this event, subclasses should override
+    /// handleTaskCustomNotification() and package the data for a custom event.
     ofEvent<const TaskCustomNotificationEventArgs_<TaskHandle> > onTaskCustomNotification;
 
     enum
@@ -319,8 +321,8 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks):
 template<typename TaskHandle>
 TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
                      Poco::ThreadPool& pool):
-_maximumTasks(maximumTasks),
-_taskManager(pool)
+    _maximumTasks(maximumTasks),
+    _taskManager(pool)
 {
     // Add the ofEvent().update listener.
     ofAddListener(ofEvents().update, this, &TaskQueue_<TaskHandle>::update, OF_EVENT_ORDER_APP);
@@ -422,9 +424,9 @@ TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, Poco::Task* p
     // Take ownership immediately.
     Poco::AutoPtr<Poco::Task> pAutoTask(pRawTask);
 
-    if (inQueue(taskID))
+    if (exists(taskID))
     {
-        throw Poco::Exception("Already Queued");
+        throw Poco::ExistsException("taskID already exists");
     }
 
     // Add the task to the forward taskID / task map.
@@ -522,31 +524,16 @@ void TaskQueue_<TaskHandle>::cancelAll()
 
 
 template<typename TaskHandle>
-bool TaskQueue_<TaskHandle>::inQueue(TaskPtr pTask) const
+bool TaskQueue_<TaskHandle>::exists(TaskPtr pTask) const
 {
     return _taskIDMap.find(pTask) != _taskIDMap.end();
 }
 
 
 template<typename TaskHandle>
-bool TaskQueue_<TaskHandle>::inQueue(const TaskHandle& taskID) const
+bool TaskQueue_<TaskHandle>::exists(const TaskHandle& taskID) const
 {
     return _IDTaskMap.find(taskID) != _IDTaskMap.end();
-}
-
-
-template<typename TaskHandle>
-std::string TaskQueue_<TaskHandle>::getTaskName(const TaskHandle& taskID) const
-{
-    if (Poco::AutoPtr<Poco::Task> ptr = getTaskPtr(taskID))
-    {
-        return ptr->name();
-    }
-    else
-    {
-        // We already log a warning in getTaskPtr() in this case.
-        return "";
-    }
 }
 
 
@@ -844,38 +831,9 @@ public:
 
     Poco::UUID start(Poco::Task* pRawTask)
     {
-        // Generate a unique task id.
-        std::size_t tryCount = 0;
-        Poco::UUID taskID = generateUniqueTaskID(tryCount);
-
-        return TaskQueue_<Poco::UUID>::start(taskID, pRawTask);
+        return TaskQueue_<Poco::UUID>::start(Poco::UUIDGenerator::defaultGenerator().createOne(), pRawTask);
     }
 
-protected:
-    /// \brief Generate a unique taskID to return when starting a task.
-    /// \param tryCount An tryCount to limit the recusions.
-    /// \returns An unused TaskHandle.
-    Poco::UUID generateUniqueTaskID(std::size_t& tryCount) const
-    {
-        ++tryCount;
-
-        Poco::UUID uuid = Poco::UUIDGenerator::defaultGenerator().createOne();
-
-        if (inQueue(uuid))
-        {
-            if (tryCount > 1)
-            {
-                ofLogFatalError("TaskQueue::generateUniqueTaskId") << "Duplicate UUID generated.";
-            }
-
-            return generateUniqueTaskID(tryCount);
-        }
-        else
-        {
-            return uuid;
-        }
-    }
-    
 };
 
 
