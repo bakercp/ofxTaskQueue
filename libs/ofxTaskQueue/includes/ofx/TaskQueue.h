@@ -89,6 +89,9 @@ public:
     /// \brief A typedef for a task list.
 	typedef std::list<TaskPtr> TaskList;
 
+    /// \breif A typedef for task progress information.
+    typedef std::map<TaskHandle, TaskProgressEventArgs_<TaskHandle> > ProgressMap;
+
     /// \brief Create a TaskQueue using the default ThreadPool.
     ///
     /// To modifiy the thread pool parameters, call
@@ -151,6 +154,10 @@ public:
     ///
     /// \returns the number of tasks under the control of the TaskQueue.
     std::size_t getCount() const;
+
+    /// \brief Get a map of task progress.
+    /// \returns a Task Progress map.
+    const ProgressMap& getTaskProgress() const;
 
     /// \brief Get the maximum number of tasks.
     ///
@@ -227,14 +234,18 @@ public:
     };
 
 protected:
+    typedef Poco::AutoPtr<Poco::TaskNotification> TaskNotificationPtr;
+
     /// \brief Get a pointer to a Task given its taskID.
     /// \param taskID The the taskID search key.
     /// \return Return a pointer to the Task matching task or 0 if not found.
+    /// \throws Poco::NotFoundException if the task cannot be found.
     TaskPtr getTaskPtr(const TaskHandle& taskID) const;
 
     /// \brief Get the taskID for a given Task.
     /// \param pTask The task search key.
     /// \return Return the unique taskID for the matching task or a NULL UUID.
+    /// \throws Poco::NotFoundException if the task cannot be found.
     TaskHandle getTaskId(const TaskPtr& pTask) const;
 
     /// \brief Handle all custom task notifications from the Notification queue.
@@ -248,7 +259,7 @@ protected:
     /// \param taskID the task UUID.
     /// \param pNotification a pointer to the notification.
     virtual void handleTaskCustomNotification(const TaskHandle& taskID,
-                                              Poco::AutoPtr<Poco::TaskNotification> pNotification);
+                                              TaskNotificationPtr pNotification);
 
     /// \brief A typedef for a task list.
     typedef Poco::Observer<TaskQueue_, Poco::TaskNotification> TaskQueueObserver;
@@ -288,6 +299,9 @@ protected:
 
     /// \brief A list of tasks waiting to be submitted to the TaskManager.
     TaskList _queuedTasks;
+
+    /// \brief A map of the taskID to the Task progress.
+    ProgressMap _IDTaskProgressMap;
 
     /// \brief A NotificationQueue to distribute in the main thread.
     ///
@@ -422,11 +436,11 @@ template<typename TaskHandle>
 TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, Poco::Task* pRawTask)
 {
     // Take ownership immediately.
-    Poco::AutoPtr<Poco::Task> pAutoTask(pRawTask);
+    TaskPtr pAutoTask(pRawTask);
 
     if (exists(taskID))
     {
-        throw Poco::ExistsException("taskID already exists");
+        throw Poco::ExistsException("TaskID already exists");
     }
 
     // Add the task to the forward taskID / task map.
@@ -438,11 +452,18 @@ TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, Poco::Task* p
     // Queue our task for an immediate start on the next update call.
     _queuedTasks.push_back(pAutoTask);
 
+    // Update the progress
+    _IDTaskProgressMap[taskID] = TaskProgressEventArgs_<TaskHandle>(taskID,
+                                                                    pAutoTask->name(),
+                                                                    pAutoTask->state(),
+                                                                    0);
+
     TaskQueueEventArgs_<TaskHandle> args(taskID,
                                          pAutoTask->name(),
                                          pAutoTask->state());
 
     ofNotifyEvent(onTaskQueued, args, this);
+
 
     return taskID;
 }
@@ -556,13 +577,15 @@ void TaskQueue_<TaskHandle>::onNotification(Poco::TaskNotification* pNf)
 
 template<typename TaskHandle>
 void TaskQueue_<TaskHandle>::handleTaskCustomNotification(const TaskHandle& taskID,
-                                                         Poco::AutoPtr<Poco::TaskNotification> pNotification)
+                                                          TaskNotificationPtr pNotification)
 {
     TaskCustomNotificationEventArgs_<TaskHandle> args(taskID,
                                                       pNotification->task()->name(),
                                                       pNotification->task()->state(),
                                                       pNotification->task()->progress(),
                                                       pNotification);
+
+    _IDTaskProgressMap[taskID] = args;
 
     ofNotifyEvent(onTaskCustomNotification, args, this);
 }
@@ -571,7 +594,7 @@ void TaskQueue_<TaskHandle>::handleTaskCustomNotification(const TaskHandle& task
 template<typename TaskHandle>
 void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotification)
 {
-    Poco::AutoPtr<Poco::TaskNotification> pTaskNotification = 0;
+    TaskNotificationPtr pTaskNotification = 0;
 
     if (!(pTaskNotification = pNotification.cast<Poco::TaskNotification>()).isNull())
     {
@@ -595,6 +618,8 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                                         Poco::Task::TASK_STARTING,
                                                         pTaskNotification->task()->progress());
 
+                _IDTaskProgressMap[taskID] = args;
+
                 ofNotifyEvent(onTaskStarted, args, this);
             }
             else if (!(taskCancelled = pTaskNotification.cast<Poco::TaskCancelledNotification>()).isNull())
@@ -605,6 +630,8 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                                         Poco::Task::TASK_CANCELLING,
                                                         pTaskNotification->task()->progress());
 
+                _IDTaskProgressMap[taskID] = args;
+
                 ofNotifyEvent(onTaskCancelled, args, this);
             }
             else if (!(taskFinished = pTaskNotification.cast<Poco::TaskFinishedNotification>()).isNull())
@@ -614,8 +641,23 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                                         Poco::Task::TASK_FINISHED,
                                                         pTaskNotification->task()->progress());
 
+                _IDTaskProgressMap[taskID] = args;
+
                 ofNotifyEvent(onTaskFinished, args, this);
 
+                // Remove the progress mapping.
+                typename ProgressMap::iterator progressIter = _IDTaskProgressMap.find(taskID);
+
+                if (progressIter != _IDTaskProgressMap.end())
+                {
+                    _IDTaskProgressMap.erase(progressIter);
+                }
+                else
+                {
+                    ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Unable to find forwardIter.";
+                }
+
+                // Remove the task / handle mapping.
                 typename IDTaskMap::iterator iterForward = _IDTaskMap.find(taskID);
 
                 if (iterForward != _IDTaskMap.end())
@@ -645,6 +687,13 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                          pTaskNotification->task()->state(),
                                          taskFailed->reason());
 
+                float progress = _IDTaskProgressMap[taskID].getProgress();
+
+                _IDTaskProgressMap[taskID] = TaskProgressEventArgs(taskID,
+                                                                   pTaskNotification->task()->name(),
+                                                                   pTaskNotification->task()->state(),
+                                                                   progress);
+
                 ofNotifyEvent(onTaskFailed, args, this);
             }
             else if (!(taskProgress = pTaskNotification.cast<Poco::TaskProgressNotification>()).isNull())
@@ -653,6 +702,8 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                            pTaskNotification->task()->name(),
                                            pTaskNotification->task()->state(),
                                            taskProgress->progress());
+
+                _IDTaskProgressMap[taskID] = args;
 
                 ofNotifyEvent(onTaskProgress, args, this);
             }
@@ -707,7 +758,7 @@ bool TaskQueue_<TaskHandle>::startTask(TaskPtr pTask)
 
 
 template<typename TaskHandle>
-TaskHandle TaskQueue_<TaskHandle>::getTaskId(const Poco::AutoPtr<Poco::Task>& pNf) const
+TaskHandle TaskQueue_<TaskHandle>::getTaskId(const TaskPtr& pNf) const
 {
     typename TaskIDMap::const_iterator iter = _taskIDMap.find(pNf);
     
@@ -717,7 +768,7 @@ TaskHandle TaskQueue_<TaskHandle>::getTaskId(const Poco::AutoPtr<Poco::Task>& pN
     }
     else
     {
-        throw Poco::Exception("Task does not exist.");
+        throw Poco::NotFoundException("TaskID Not found.");
     }
 }
 
@@ -751,6 +802,13 @@ std::size_t TaskQueue_<TaskHandle>::getCount() const
 
 
 template<typename TaskHandle>
+const typename TaskQueue_<TaskHandle>::ProgressMap& TaskQueue_<TaskHandle>::getTaskProgress() const
+{
+    return _IDTaskProgressMap;
+}
+
+
+template<typename TaskHandle>
 int TaskQueue_<TaskHandle>::getMaximumTasks() const
 {
     return _maximumTasks;
@@ -765,7 +823,7 @@ void TaskQueue_<TaskHandle>::setMaximumTasks(int maximumTasks)
 
 
 template<typename TaskHandle>
-Poco::AutoPtr<Poco::Task> TaskQueue_<TaskHandle>::getTaskPtr(const TaskHandle& taskID) const
+typename TaskQueue_<TaskHandle>::TaskPtr TaskQueue_<TaskHandle>::getTaskPtr(const TaskHandle& taskID) const
 {
     typename IDTaskMap::const_iterator iter = _IDTaskMap.find(taskID);
     
@@ -775,8 +833,7 @@ Poco::AutoPtr<Poco::Task> TaskQueue_<TaskHandle>::getTaskPtr(const TaskHandle& t
     }
     else
     {
-        ofLogWarning("TaskQueue_<TaskHandle>::getTaskPtr") << "No task with id: " << taskID.toString();
-        return 0;
+        throw Poco::NotFoundException("TaskID Not found.");
     }
 }
 
@@ -813,7 +870,8 @@ public:
     /// \brief Create a TaskQueue using the default ThreadPool.
     ///
     /// To modifiy the thread pool parameters, call
-    TaskQueue(int maximumTasks = UNLIMITED_TASKS): TaskQueue_<Poco::UUID>(maximumTasks)
+    TaskQueue(int maximumTasks = TaskQueue_<Poco::UUID>::UNLIMITED_TASKS):
+        TaskQueue_<Poco::UUID>(maximumTasks)
     {
     }
 

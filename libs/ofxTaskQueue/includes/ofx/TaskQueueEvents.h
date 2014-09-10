@@ -42,6 +42,13 @@ template<typename TaskHandle>
 class TaskQueueEventArgs_: public ofEventArgs
 {
 public:
+    TaskQueueEventArgs_():
+        _taskID(TaskHandle()),
+        _taskName(""),
+        _state(Poco::Task::TASK_IDLE)
+    {
+    }
+
     /// \brief Create a BaseTaskEventArgs.
     /// \param taskId The unique task id for the referenced Task.
     /// \param taskName The name of the referenced Task;
@@ -82,10 +89,10 @@ public:
 
 protected:
     /// \brief The unique task id for the referenced task.
-    const TaskHandle& _taskID;
+    TaskHandle _taskID;
 
     /// \brief The name of the given task.
-    const std::string& _taskName;
+    std::string _taskName;
 
     /// \brief The Poco::Task::TaskState of the task.
     Poco::Task::TaskState _state;
@@ -135,6 +142,12 @@ template<typename TaskHandle>
 class TaskProgressEventArgs_: public TaskQueueEventArgs_<TaskHandle>
 {
 public:
+    TaskProgressEventArgs_():
+        TaskQueueEventArgs_<TaskHandle>(),
+        _progress(0)
+    {
+    }
+
     /// \brief Create a TaskProgressEventArgs.
     /// \param taskId The unique task id for the referenced task.
     /// \param taskName The name of the referenced Task;
