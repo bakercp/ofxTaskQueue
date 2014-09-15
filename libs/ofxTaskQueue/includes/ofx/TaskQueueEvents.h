@@ -109,10 +109,10 @@ public:
     /// \param taskId The unique task id for the referenced Task.
     /// \param taskName The name of the referenced Task;
     /// \param exception The exception that caused the Task failure.
-    TaskFailedEventArgs_(const Poco::UUID& taskID,
-                        const std::string& taskName,
-                        Poco::Task::TaskState state,
-                        const Poco::Exception& exception):
+    TaskFailedEventArgs_(const TaskHandle& taskID,
+                         const std::string& taskName,
+                         Poco::Task::TaskState state,
+                         const Poco::Exception& exception):
         TaskQueueEventArgs_<TaskHandle>(taskID, taskName, state),
         _exception(exception)
     {

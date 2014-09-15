@@ -598,10 +598,10 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
 
     if (!(pTaskNotification = pNotification.cast<Poco::TaskNotification>()).isNull())
     {
-        TaskHandle taskID;
-
-        if (!(taskID = getTaskId(pTaskNotification->task())).isNull())
+        try
         {
+            TaskHandle taskID = getTaskId(pTaskNotification->task());
+
             // Now determine what kind of task notification we have.
             Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = 0;
             Poco::AutoPtr<Poco::TaskCancelledNotification> taskCancelled = 0;
@@ -682,26 +682,26 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
             }
             else if (!(taskFailed = pTaskNotification.cast<Poco::TaskFailedNotification>()).isNull())
             {
-                TaskFailedEventArgs args(taskID,
-                                         pTaskNotification->task()->name(),
-                                         pTaskNotification->task()->state(),
-                                         taskFailed->reason());
+                TaskFailedEventArgs_<TaskHandle> args(taskID,
+                                                      pTaskNotification->task()->name(),
+                                                      pTaskNotification->task()->state(),
+                                                      taskFailed->reason());
 
                 float progress = _IDTaskProgressMap[taskID].getProgress();
 
-                _IDTaskProgressMap[taskID] = TaskProgressEventArgs(taskID,
-                                                                   pTaskNotification->task()->name(),
-                                                                   pTaskNotification->task()->state(),
-                                                                   progress);
+                _IDTaskProgressMap[taskID] = TaskProgressEventArgs_<TaskHandle>(taskID,
+                                                                                pTaskNotification->task()->name(),
+                                                                                pTaskNotification->task()->state(),
+                                                                                progress);
 
                 ofNotifyEvent(onTaskFailed, args, this);
             }
             else if (!(taskProgress = pTaskNotification.cast<Poco::TaskProgressNotification>()).isNull())
             {
-                TaskProgressEventArgs args(taskID,
-                                           pTaskNotification->task()->name(),
-                                           pTaskNotification->task()->state(),
-                                           taskProgress->progress());
+                TaskProgressEventArgs_<TaskHandle> args(taskID,
+                                                        pTaskNotification->task()->name(),
+                                                        pTaskNotification->task()->state(),
+                                                        taskProgress->progress());
 
                 _IDTaskProgressMap[taskID] = args;
 
@@ -712,7 +712,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                 handleTaskCustomNotification(taskID, pTaskNotification);
             }
         }
-        else
+        catch (const Poco::NotFoundException& exc)
         {
             ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Missing TaskId.";
         }
