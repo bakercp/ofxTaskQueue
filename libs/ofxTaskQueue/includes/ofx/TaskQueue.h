@@ -236,6 +236,14 @@ public:
 protected:
     typedef Poco::AutoPtr<Poco::TaskNotification> TaskNotificationPtr;
 
+    /// \brief Sort the queued tasks.
+    ///
+    /// Subclasses can implement a custom sorting scheme.
+    /// No sorting is done by default.
+    virtual void sortQueue()
+    {
+    }
+
     /// \brief Get a pointer to a Task given its taskID.
     /// \param taskID The the taskID search key.
     /// \return Return a pointer to the Task matching task or 0 if not found.
@@ -366,6 +374,9 @@ TaskQueue_<TaskHandle>::~TaskQueue_()
 template<typename TaskHandle>
 void TaskQueue_<TaskHandle>::update(ofEventArgs& args)
 {
+    // Sort the queue.
+    sortQueue();
+
     // Try to start any queued tasks.
     TaskList::iterator queuedTasksIter = _queuedTasks.begin();
 
