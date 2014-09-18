@@ -123,6 +123,9 @@ public:
     /// \param taskID The taskID of the Task to cancel.
     void cancel(const TaskHandle& taskID);
 
+    /// \brief Cancel all tasks that have not yet started.
+    void cancelQueued();
+
     /// \brief Request cancellation of all tasks, both queued and active.
     void cancelAll();
 
@@ -531,11 +534,8 @@ void TaskQueue_<TaskHandle>::cancel(const TaskHandle& taskID)
 
 
 template<typename TaskHandle>
-void TaskQueue_<TaskHandle>::cancelAll()
+void TaskQueue_<TaskHandle>::cancelQueued()
 {
-    // Cancel all active tasks.
-    _taskManager.cancelAll();
-
     // Try to start any queued tasks.
     Poco::TaskManager::TaskList::iterator iter = _queuedTasks.begin();
 
@@ -552,6 +552,16 @@ void TaskQueue_<TaskHandle>::cancelAll()
         // Remove the unstarted task from the queue.
         _queuedTasks.erase(iter++);
     }
+}
+
+
+template<typename TaskHandle>
+void TaskQueue_<TaskHandle>::cancelAll()
+{
+    // Cancel all active tasks.
+    _taskManager.cancelAll();
+
+    cancelQueued();
 }
 
 
