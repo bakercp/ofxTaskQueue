@@ -46,6 +46,7 @@ void ofApp::draw()
     std::stringstream ss;
 
     ss << "Press 'c' to cancel all tasks." << std::endl;
+    ss << "Press 'C' to cancel queued tasks." << std::endl;
     ss << "Press 'a' to add tasks." << std::endl;
 
     ofDrawBitmapStringHighlight(ss.str(), ofPoint(10, 14));
@@ -135,7 +136,11 @@ void ofApp::keyPressed(int key)
     {
         queue.cancelAll();
     }
-    else if ('a')
+    else if ('C' == key)
+    {
+        queue.cancelQueued();
+    }
+    else if ('a' == key)
     {
         queue.start(new SimpleCountingTask("User manually added!", 100));
     }
