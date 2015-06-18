@@ -277,10 +277,10 @@ protected:
 };
 
 
-typedef TaskQueueEventArgs_<Poco::UUID> TaskQueueEventArgs;
-typedef TaskProgressEventArgs_<Poco::UUID> TaskProgressEventArgs;
-typedef TaskFailedEventArgs_<Poco::UUID> TaskFailedEventArgs;
-typedef TaskCustomNotificationEventArgs_<Poco::UUID> TaskCustomNotificationEventArgs;
+typedef TaskQueueEventArgs_<std::string> TaskQueueEventArgs;
+typedef TaskProgressEventArgs_<std::string> TaskProgressEventArgs;
+typedef TaskFailedEventArgs_<std::string> TaskFailedEventArgs;
+typedef TaskCustomNotificationEventArgs_<std::string> TaskCustomNotificationEventArgs;
 
 
 } // namespace ofx
