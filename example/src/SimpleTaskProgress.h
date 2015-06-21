@@ -27,7 +27,6 @@
 
 
 #include <string>
-#include "Poco/UUID.h"
 #include "Poco/Task.h"
 #include "ofx/TaskQueueEvents.h"
 
@@ -46,7 +45,7 @@ public:
 
     void draw(float x, float y, float width, float height);
 
-    Poco::UUID taskId;
+    std::string taskId;
     std::string name;
     Poco::Task::TaskState state;
     float progress;

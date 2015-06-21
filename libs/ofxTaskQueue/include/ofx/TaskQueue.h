@@ -32,10 +32,12 @@
 #include "Poco/Observer.h"
 #include "Poco/Task.h"
 #include "Poco/TaskManager.h"
+#include "Poco/ThreadPool.h"
 #include "Poco/UUID.h"
+#include "Poco/UUIDGenerator.h"
+#include "Poco/Version.h"
 #include "ofEvents.h"
 #include "ofx/TaskQueueEvents.h"
-#include "Poco/UUIDGenerator.h"
 #include "ofLog.h"
 
 
@@ -397,7 +399,7 @@ void TaskQueue_<TaskHandle>::update(ofEventArgs& args)
                 // We duplicate the task in order to share ownership and
                 // preserve our own pointer references for taskID lookup etc.
                 _taskManager.start((*queuedTasksIter).duplicate());
-                _queuedTasks.erase(queuedTasksIter++); // If it was started, then remove.
+                queuedTasksIter = _queuedTasks.erase(queuedTasksIter); // If it was started, then remove.
             }
         }
         catch (const Poco::Exception& exc)
@@ -528,7 +530,7 @@ void TaskQueue_<TaskHandle>::cancel(const TaskHandle& taskID)
     }
     else
     {
-        ofLogFatalError("TaskQueue_<TaskHandle>::cancel") << "Unknown taskID: " << taskID.toString();
+        ofLogFatalError("TaskQueue_<TaskHandle>::cancel") << "Unknown taskID: " << taskID;
     }
 }
 
@@ -586,13 +588,23 @@ void TaskQueue_<TaskHandle>::onNotification(Poco::TaskNotification* pNf)
     // AutoPtr in pre 1.4.4.  This is fixed in 1.4.4.
     // https://github.com/pocoproject/poco/blob/develop/Foundation/include/Poco/TaskManager.h#L104
 
-#if POCO_VERSION > 0x01040300
-    Poco::TaskNotification* p = pNf;
-#else
-    Poco::TaskNotification::Ptr p(pNf, true);
-#endif
+//#if POCO_VERSION > 0x01040300
+//    Poco::TaskNotification::Ptr p(pNf);
+//#else
+//    Poco::TaskNotification::Ptr p(pNf, true);
+//#endif
 
-    _notifications.enqueueNotification(p);
+    cout << "0. referenceCount-> " << pNf->referenceCount() << endl;
+
+    pNf->duplicate();
+    cout << "1. referenceCount-> " << pNf->referenceCount() << endl;
+
+    // .enqueueNotification takes ownership of the pointer.
+    _notifications.enqueueNotification(pNf);
+
+    cout << "2. referenceCount-> " << pNf->referenceCount() << endl;
+
+    cout << "------------------------->" << endl;
 }
 
 
@@ -885,21 +897,21 @@ void TaskQueue_<TaskHandle>::unregisterTaskProgressEvents(ListenerClass* listene
 }
 
 
-class TaskQueue: public TaskQueue_<Poco::UUID>
+class TaskQueue: public TaskQueue_<std::string>
 {
 public:
     /// \brief Create a TaskQueue using the default ThreadPool.
     ///
     /// To modifiy the thread pool parameters, call
-    TaskQueue(int maximumTasks = TaskQueue_<Poco::UUID>::UNLIMITED_TASKS):
-        TaskQueue_<Poco::UUID>(maximumTasks)
+    TaskQueue(int maximumTasks = TaskQueue_<std::string>::UNLIMITED_TASKS):
+        TaskQueue_<std::string>(maximumTasks)
     {
     }
 
     /// \brief Create a TaskQueue using provided the default ThreadPool.
     /// \param threadPool The backing Poco::ThreadPool.
     TaskQueue(int maximumTasks, Poco::ThreadPool& threadPool):
-        TaskQueue_<Poco::UUID>(maximumTasks, threadPool)
+        TaskQueue_<std::string>(maximumTasks, threadPool)
     {
     }
 
@@ -908,9 +920,9 @@ public:
     {
     }
 
-    Poco::UUID start(Poco::Task* pRawTask)
+    std::string start(Poco::Task* pRawTask)
     {
-        return TaskQueue_<Poco::UUID>::start(Poco::UUIDGenerator::defaultGenerator().createOne(), pRawTask);
+        return TaskQueue_<std::string>::start(Poco::UUIDGenerator::defaultGenerator().createOne().toString(), pRawTask);
     }
 
 };

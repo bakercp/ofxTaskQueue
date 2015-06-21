@@ -28,7 +28,7 @@
 
 
 SimpleTaskProgress::SimpleTaskProgress():
-    taskId(Poco::UUID::null()),
+    taskId(""),
     name(""),
     state(Poco::Task::TASK_IDLE),
     progress(0),
@@ -94,7 +94,7 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
 
     ofNoFill();
     ofSetColor(255, 80);
-    ofRect(0, 0, width, height);
+    ofDrawRectangle(0, 0, width, height);
 
     ofFill();
 
@@ -117,20 +117,20 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
     }
 
     // Background rectangle.
-    ofRect(0, 0, width, height);
+    ofDrawRectangle(0, 0, width, height);
 
     if (progress > 0)
     {
         ofFill();
         ofSetColor(255, 255, 0, 75 * fader);
-        ofRect(0, 0, progress * width, height);
+        ofDrawRectangle(0, 0, progress * width, height);
     }
 
     ofSetColor(255, 255 * fader);
 
     std::stringstream ss;
 
-    ss << taskId.toString() << " Name: " << name << " " << (progress * 100);
+    ss << taskId << " Name: " << name << " " << (progress * 100);
 
     if (!data.empty())
     {

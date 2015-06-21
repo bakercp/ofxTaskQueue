@@ -180,11 +180,12 @@ void ofApp::onTaskProgress(const ofx::TaskProgressEventArgs& args)
 void ofApp::onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs& args)
 {
     int i = 0;
+
     std::string message;
 
     if (args.extract(i))
     {
-        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.getTaskId().toString() << " with int = " << i << std::endl;
+        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.getTaskId() << " with int = " << i << std::endl;
     }
     else if (args.extract(message))
     {

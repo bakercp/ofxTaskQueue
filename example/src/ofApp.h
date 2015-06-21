@@ -54,7 +54,7 @@ public:
     ofx::TaskQueue queue;
 
     // Make a typedef for the map to make it shorter.
-    typedef std::map<Poco::UUID, SimpleTaskProgress> TaskProgress;
+    typedef std::map<std::string, SimpleTaskProgress> TaskProgress;
 
     // We keep a simple task progress queue.
     TaskProgress taskProgress;
