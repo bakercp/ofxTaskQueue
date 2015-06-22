@@ -31,21 +31,26 @@ void ofApp::setup()
     ofEnableAlphaBlending();
     ofSetFrameRate(60);
 
-// Add capacity to the thread pool.
-//    Poco::ThreadPool::defaultPool().addCapacity(100);
+    // Add capacity to the thread pool.
+    // Poco::ThreadPool::defaultPool().addCapacity(100);
 
-// Limit the maximum number of tasks for shared thread pools.
-//    queue.setMaximumTasks(50);
+    // Limit the maximum number of tasks for shared thread pools.
+    queue.setMaximumTasks(10);
 
     // Register to receive task queue events.
     queue.registerTaskProgressEvents(this);
 
     // Optionally listen for task custom notifications.
-    ofAddListener(queue.onTaskCustomNotification, this, &ofApp::onTaskCustomNotification);
+    ofAddListener(queue.onTaskCustomNotification,
+                  this,
+                  &ofApp::onTaskCustomNotification);
 
     for (int i = 0; i < 1000; ++i)
     {
         std::string name = "Counting Task #" + ofToString(i);
+
+        // The task queue will take ownership of the task,
+        // so tasks can be passed like this.
         queue.start(new SimpleCountingTask(name, 100));
     }
 }

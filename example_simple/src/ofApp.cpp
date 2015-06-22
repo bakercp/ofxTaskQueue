@@ -126,7 +126,6 @@ void ofApp::draw()
 
         ++iter;
     }
-
 }
 
 

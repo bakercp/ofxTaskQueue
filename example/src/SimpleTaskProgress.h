@@ -53,4 +53,5 @@ public:
     std::string data;
 
     float fader;
+
 };
