@@ -29,7 +29,7 @@
 #include <list>
 #include <map>
 #include "Poco/NotificationQueue.h"
-#include "Poco/Observer.h"
+#include "Poco/NObserver.h"
 #include "Poco/Task.h"
 #include "Poco/TaskManager.h"
 #include "Poco/ThreadPool.h"
@@ -115,7 +115,7 @@ public:
     ///
     /// \param pTask a raw pointer to a task to be queued.
     /// \throws Poco::ExistsException if the taskID already exists.
-    TaskHandle start(const TaskHandle& taskID, Poco::Task* pTask);
+    TaskHandle start(const TaskHandle& taskID, TaskPtr pTask);
 
     /// \brief Cancel a specific task by pointer.
     /// \param pTask The task pointer of the Task to cancel.
@@ -257,6 +257,13 @@ protected:
 
     /// \brief Get the taskID for a given Task.
     /// \param pTask The task search key.
+    ///
+    /// \warning If passed a raw task pointer (e.g. Poco::Task* p), the
+    /// underlying Poco::AutoPtr will take ownership and decrement (and
+    /// potentially delete) the wrapped object.  This can be avoided by passing
+    /// a TaskPtr OR passing a duplicated (thus reference count incremented)
+    /// ptr.
+    ///
     /// \return Return the unique taskID for the matching task or a NULL UUID.
     /// \throws Poco::NotFoundException if the task cannot be found.
     TaskHandle getTaskId(const TaskPtr& pTask) const;
@@ -275,7 +282,7 @@ protected:
                                               TaskNotificationPtr pNotification);
 
     /// \brief A typedef for a task list.
-    typedef Poco::Observer<TaskQueue_, Poco::TaskNotification> TaskQueueObserver;
+    typedef Poco::NObserver<TaskQueue_, Poco::TaskNotification> TaskQueueObserver;
 
     /// \brief A typedef for a ForwardTaskMap.
     typedef std::map<TaskHandle, TaskPtr> IDTaskMap;
@@ -287,17 +294,11 @@ protected:
     /// \param args The args pass with the update event.
     void update(ofEventArgs& args);
 
-    /// \brief Attempt to submit a task to the task manager.
-    /// \param pTask a pointer to the task to submit.
-    /// \returns true iff the task was submitted successfully.
-    bool startTask(TaskPtr pTask);
-
     /// \brief Handle notifications from the Notification queue.
     /// \param pNotification a pointer to the notification.
     void handleNotification(Poco::Notification::Ptr pNotification);
 
-    ///  The underlying NotificationQueue will take ownership of the pointer.
-    void onNotification(Poco::TaskNotification* pNf);
+    void onNotification(const TaskNotificationPtr& pNf);
 
     /// \brief The maximum number of simultaneous tasks.
     ///
@@ -347,7 +348,7 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks):
 
 template<typename TaskHandle>
 TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
-                     Poco::ThreadPool& pool):
+                                   Poco::ThreadPool& pool):
     _maximumTasks(maximumTasks),
     _taskManager(pool)
 {
@@ -385,74 +386,56 @@ void TaskQueue_<TaskHandle>::update(ofEventArgs& args)
     // Try to start any queued tasks.
     TaskList::iterator queuedTasksIter = _queuedTasks.begin();
 
-    while (queuedTasksIter != _queuedTasks.end())
+    while (queuedTasksIter != _queuedTasks.end() && (UNLIMITED_TASKS == _maximumTasks || _taskManager.count() < _maximumTasks))
     {
         try
         {
-            if (_maximumTasks != UNLIMITED_TASKS &&
-                _taskManager.count() >= _maximumTasks)
-            {
-                throw Poco::Exception("Maximum tasks exceeded.");
-            }
-            else
-            {
-                // We duplicate the task in order to share ownership and
-                // preserve our own pointer references for taskID lookup etc.
-                _taskManager.start((*queuedTasksIter).duplicate());
-                queuedTasksIter = _queuedTasks.erase(queuedTasksIter); // If it was started, then remove.
-            }
-        }
-        catch (const Poco::Exception& exc)
-        {
-            ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task queued. Reason: " << exc.displayText();
-            (*queuedTasksIter)->reset();
-            break;
-        }
-        catch (const std::exception& exc)
-        {
-            ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task queued. Reason: " << exc.what();
-            (*queuedTasksIter)->reset();
-            break;
+            // We duplicate the task in order to share ownership and
+            // preserve our own pointer references for taskID lookup etc.
+            // Poco::TaskManager expects a raw pointer and wraps it in a
+            // Poco::AutoPtr, but since we already wrapped it in an
+            // Poco::AutoPtr, we need to duplicate it so the task manager
+            // doesn't delete it before we are finished with it.
+            _taskManager.start((*queuedTasksIter).duplicate());
+
+            // If it was started without an exception, then remove it from the queue.
+            _queuedTasks.erase(queuedTasksIter++);
         }
         catch (...)
         {
-            ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task queued. Reason: Unknown";
+            ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task start failure.";
+            // Reset the state, progress and cancel status of the task, which was
+            // modified when we attempted (and failed) to start the task with
+            // _taskManager.start() in our try / catch block above.
             (*queuedTasksIter)->reset();
+
+            // Break and attempt to queue them up next update.
             break;
         }
-
-        // Reset the state, progress and cancel status of the task, which was
-        // modified when we attempted (and failed) to start the task with
-        // _taskManager.start() in our try / catch block above.
     }
 
-    // Process the notification queue.
-    Poco::Notification::Ptr pNotification;
 
-    do
+    while (!_notifications.empty())
     {
-        // Immediately take ownership by assigning to AutoPtr.
-        pNotification = _notifications.dequeueNotification();
+        // Take ownership of the notification pointer.
+        Poco::Notification::Ptr pNotification(_notifications.dequeueNotification());
 
-        if (!pNotification.isNull())
-        {
-            handleNotification(pNotification);
-        }
-        else
-        {
-            break;
-        }
+        // Handle the notification
+        //
+        // This notification should have a refernce to the
+        // task pointer until after the handle notification.
+        handleNotification(pNotification);
     }
-    while (!pNotification.isNull());
-
 }
 
 
 template<typename TaskHandle>
-TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, Poco::Task* pRawTask)
+TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, TaskPtr pAutoTask)
 {
-    // Take ownership immediately.
-    TaskPtr pAutoTask(pRawTask);
+//    // Take ownership immediately.
+//    // Reference count is not incremented.
+//    // Reference count should still just be 1.
+//    TaskPtr pAutoTask(pRawTask);
 
     if (exists(taskID))
     {
@@ -472,14 +455,13 @@ TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, Poco::Task* p
     _IDTaskProgressMap[taskID] = TaskProgressEventArgs_<TaskHandle>(taskID,
                                                                     pAutoTask->name(),
                                                                     pAutoTask->state(),
-                                                                    0);
+                                                                    pAutoTask->progress());
 
     TaskQueueEventArgs_<TaskHandle> args(taskID,
                                          pAutoTask->name(),
                                          pAutoTask->state());
 
     ofNotifyEvent(onTaskQueued, args, this);
-
 
     return taskID;
 }
@@ -548,7 +530,8 @@ void TaskQueue_<TaskHandle>::cancelQueued()
         // First send a task cancelled notification.
         onNotification(new Poco::TaskCancelledNotification(*iter));
 
-        /// Then send a task finished notification.
+        // Then send a task finished notification.
+        // This notification will clear the maps map references.
         onNotification(new Poco::TaskFinishedNotification(*iter));
 
         // Remove the unstarted task from the queue.
@@ -582,29 +565,11 @@ bool TaskQueue_<TaskHandle>::exists(const TaskHandle& taskID) const
 
 
 template<typename TaskHandle>
-void TaskQueue_<TaskHandle>::onNotification(Poco::TaskNotification* pNf)
+void TaskQueue_<TaskHandle>::onNotification(const TaskNotificationPtr& pNf)
 {
-    // TODO: This is a hack because TaskManager::postNotification() breaks
-    // AutoPtr in pre 1.4.4.  This is fixed in 1.4.4.
-    // https://github.com/pocoproject/poco/blob/develop/Foundation/include/Poco/TaskManager.h#L104
-
-//#if POCO_VERSION > 0x01040300
-//    Poco::TaskNotification::Ptr p(pNf);
-//#else
-//    Poco::TaskNotification::Ptr p(pNf, true);
-//#endif
-
-    cout << "0. referenceCount-> " << pNf->referenceCount() << endl;
-
-    pNf->duplicate();
-    cout << "1. referenceCount-> " << pNf->referenceCount() << endl;
-
-    // .enqueueNotification takes ownership of the pointer.
+    // .enqueueNotification takes ownership of the pointer, so it is not
+    // required to duplicated the pNf.
     _notifications.enqueueNotification(pNf);
-
-    cout << "2. referenceCount-> " << pNf->referenceCount() << endl;
-
-    cout << "------------------------->" << endl;
 }
 
 
@@ -627,13 +592,17 @@ void TaskQueue_<TaskHandle>::handleTaskCustomNotification(const TaskHandle& task
 template<typename TaskHandle>
 void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotification)
 {
-    TaskNotificationPtr pTaskNotification = 0;
+    TaskNotificationPtr pTaskNotification = pNotification.cast<Poco::TaskNotification>();
 
-    if (!(pTaskNotification = pNotification.cast<Poco::TaskNotification>()).isNull())
+    if (!pTaskNotification.isNull())
     {
         try
         {
-            TaskHandle taskID = getTaskId(pTaskNotification->task());
+            // We must wrap this task pointer so that it is not freed.
+            // We treat it as a shared pointer, which duplicates it.
+            TaskPtr pTask(pTaskNotification->task(), true);
+
+            TaskHandle taskID = getTaskId(pTask);
 
             // Now determine what kind of task notification we have.
             Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = 0;
@@ -645,73 +614,38 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
             if (!(taskStarted = pTaskNotification.cast<Poco::TaskStartedNotification>()).isNull())
             {
 
-            
                 TaskProgressEventArgs_<TaskHandle> args(taskID,
-                                                        pTaskNotification->task()->name(),
+                                                        pTask->name(),
                                                         Poco::Task::TASK_STARTING,
-                                                        pTaskNotification->task()->progress());
+                                                        pTask->progress());
 
                 _IDTaskProgressMap[taskID] = args;
-
                 ofNotifyEvent(onTaskStarted, args, this);
             }
             else if (!(taskCancelled = pTaskNotification.cast<Poco::TaskCancelledNotification>()).isNull())
             {
                 // Here we force the
                 TaskProgressEventArgs_<TaskHandle> args(taskID,
-                                                        pTaskNotification->task()->name(),
+                                                        pTask->name(),
                                                         Poco::Task::TASK_CANCELLING,
-                                                        pTaskNotification->task()->progress());
+                                                        pTask->progress());
 
                 _IDTaskProgressMap[taskID] = args;
-
                 ofNotifyEvent(onTaskCancelled, args, this);
             }
             else if (!(taskFinished = pTaskNotification.cast<Poco::TaskFinishedNotification>()).isNull())
             {
                 TaskProgressEventArgs_<TaskHandle> args(taskID,
-                                                        pTaskNotification->task()->name(),
+                                                        pTask->name(),
                                                         Poco::Task::TASK_FINISHED,
-                                                        pTaskNotification->task()->progress());
+                                                        pTask->progress());
 
                 _IDTaskProgressMap[taskID] = args;
-
                 ofNotifyEvent(onTaskFinished, args, this);
+                _IDTaskProgressMap.erase(taskID);
+                _IDTaskMap.erase(taskID);
+                _taskIDMap.erase(pTask); // Must erase via pTask!
 
-                // Remove the progress mapping.
-                typename ProgressMap::iterator progressIter = _IDTaskProgressMap.find(taskID);
-
-                if (progressIter != _IDTaskProgressMap.end())
-                {
-                    _IDTaskProgressMap.erase(progressIter);
-                }
-                else
-                {
-                    ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Unable to find forwardIter.";
-                }
-
-                // Remove the task / handle mapping.
-                typename IDTaskMap::iterator iterForward = _IDTaskMap.find(taskID);
-
-                if (iterForward != _IDTaskMap.end())
-                {
-                    typename TaskIDMap::iterator iterReverse = _taskIDMap.find(iterForward->second);
-
-                    _IDTaskMap.erase(iterForward);
-
-                    if (iterReverse != _taskIDMap.end())
-                    {
-                        _taskIDMap.erase(iterReverse);
-                    }
-                    else
-                    {
-                        ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Unable to find reverseIter.";
-                    }
-                }
-                else
-                {
-                    ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Unable to find forwardIter.";
-                }
             }
             else if (!(taskFailed = pTaskNotification.cast<Poco::TaskFailedNotification>()).isNull())
             {
@@ -723,11 +657,12 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                 float progress = _IDTaskProgressMap[taskID].getProgress();
 
                 _IDTaskProgressMap[taskID] = TaskProgressEventArgs_<TaskHandle>(taskID,
-                                                                                pTaskNotification->task()->name(),
-                                                                                pTaskNotification->task()->state(),
+                                                                                pTask->name(),
+                                                                                pTask->state(),
                                                                                 progress);
 
                 ofNotifyEvent(onTaskFailed, args, this);
+
             }
             else if (!(taskProgress = pTaskNotification.cast<Poco::TaskProgressNotification>()).isNull())
             {
@@ -735,9 +670,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                                         pTaskNotification->task()->name(),
                                                         pTaskNotification->task()->state(),
                                                         taskProgress->progress());
-
                 _IDTaskProgressMap[taskID] = args;
-
                 ofNotifyEvent(onTaskProgress, args, this);
             }
             else
@@ -754,39 +687,6 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
     {
         ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Unknown notification type: " << pNotification->name();
     }
-}
-
-
-template<typename TaskHandle>
-bool TaskQueue_<TaskHandle>::startTask(TaskPtr pTask)
-{
-    try
-    {
-        // We duplicate the task in order to share ownership and
-        // preserve our own pointer references for taskID lookup etc.
-        _taskManager.start(pTask);
-        return true;
-    }
-    catch (const Poco::Exception& exc)
-    {
-        ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task queued. Reason: " << exc.displayText();
-    }
-    catch (const std::exception& exc)
-    {
-        ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task queued. Reason: " << exc.what();
-    }
-    catch (...)
-    {
-        ofLogVerbose("TaskQueue_<TaskHandle>::start") << "Task queued. Reason: Unknown";
-    }
-
-    // Reset the state, progress and cancel status of the task, which was
-    // modified when we attempted (and failed) to start the task with
-    // _taskManager.start() in our try / catch block above.
-    pTask->reset();
-    
-    // Return unsuccessful.  This will keep it in our task queue.
-    return false;
 }
 
 
