@@ -84,7 +84,7 @@ void SimpleTaskProgress::update(const ofx::TaskFailedEventArgs& args)
 
 void SimpleTaskProgress::draw(float x, float y, float width, float height)
 {
-    if (state == Poco::Task::TASK_FINISHED)
+    if (Poco::Task::TASK_FINISHED == state)
     {
         fader = ofClamp(fader - 0.05, 0, 1);
     }
@@ -94,7 +94,7 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
 
     ofNoFill();
     ofSetColor(255, 80);
-    ofDrawRectangle(0, 0, width, height);
+    ofRect(0, 0, width, height);
 
     ofFill();
 
@@ -117,13 +117,13 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
     }
 
     // Background rectangle.
-    ofDrawRectangle(0, 0, width, height);
+    ofRect(0, 0, width, height);
 
     if (progress > 0)
     {
         ofFill();
         ofSetColor(255, 255, 0, 75 * fader);
-        ofDrawRectangle(0, 0, progress * width, height);
+        ofRect(0, 0, progress * width, height);
     }
 
     ofSetColor(255, 255 * fader);
@@ -151,9 +151,5 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
 
     ofPopMatrix();
 
-    if (state == Poco::Task::TASK_FINISHED)
-    {
-        fader -= 0.01;
-    }
 }
 
