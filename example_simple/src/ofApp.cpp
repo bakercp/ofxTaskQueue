@@ -110,11 +110,11 @@ void ofApp::draw()
 
         ofFill();
         ofSetColor(color, 127);
-        ofDrawRectangle(0, 0, ofGetWidth() * progress, height - 2);
+        ofRect(0, 0, ofGetWidth() * progress, height - 2);
 
         ofNoFill();
         ofSetColor(color);
-        ofDrawRectangle(0, 0, ofGetWidth() * progress, height - 2);
+        ofRect(0, 0, ofGetWidth() * progress, height - 2);
 
         ofFill();
         ofSetColor(255);
