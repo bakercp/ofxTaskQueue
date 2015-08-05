@@ -50,8 +50,9 @@ public:
     }
 
     /// \brief Create a BaseTaskEventArgs.
-    /// \param taskId The unique task id for the referenced Task.
-    /// \param taskName The name of the referenced Task;
+    /// \param taskID The unique task id for the referenced Task.
+    /// \param taskName The name of the referenced Task.
+    /// \param state The state of the referenced task.
     TaskQueueEventArgs_(const TaskHandle& taskID,
                         const std::string& taskName,
                         Poco::Task::TaskState state):
@@ -109,11 +110,11 @@ public:
     /// \param taskId The unique task id for the referenced Task.
     /// \param taskName The name of the referenced Task;
     /// \param exception The exception that caused the Task failure.
-    TaskFailedEventArgs_(const TaskHandle& taskID,
+    TaskFailedEventArgs_(const TaskHandle& taskId,
                          const std::string& taskName,
                          Poco::Task::TaskState state,
                          const Poco::Exception& exception):
-        TaskQueueEventArgs_<TaskHandle>(taskID, taskName, state),
+        TaskQueueEventArgs_<TaskHandle>(taskId, taskName, state),
         _exception(exception)
     {
     }
@@ -192,12 +193,12 @@ public:
     /// \brief Create a TaskDataEventArgs.
     /// \param taskId The unique task id for the referenced task.
     /// \param data The custom event data.
-    TaskDataEventArgs_(const TaskHandle& taskID,
+    TaskDataEventArgs_(const TaskHandle& taskId,
                        const std::string& taskName,
                        Poco::Task::TaskState state,
                        float progress,
                        const DataType& data):
-        TaskProgressEventArgs_<TaskHandle>(taskID, taskName, state, progress),
+        TaskProgressEventArgs_<TaskHandle>(taskId, taskName, state, progress),
         _data(data)
     {
     }
@@ -227,12 +228,12 @@ class TaskCustomNotificationEventArgs_: public TaskProgressEventArgs_<TaskHandle
 public:
     /// \brief Create a TaskCustomNotificationEventArgs.
     /// \param taskId The unique task id for the referenced task.
-    TaskCustomNotificationEventArgs_(const TaskHandle& taskID,
+    TaskCustomNotificationEventArgs_(const TaskHandle& taskId,
                                      const std::string& taskName,
                                      Poco::Task::TaskState state,
                                      float progress,
                                      Poco::TaskNotification::Ptr pNotification):
-        TaskProgressEventArgs_<TaskHandle>(taskID,
+        TaskProgressEventArgs_<TaskHandle>(taskId,
                                            taskName,
                                            state,
                                            progress),
@@ -258,7 +259,7 @@ public:
     template<typename DataType>
     bool extract(DataType& data) const
     {
-        Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskCustomNotification = 0;
+        Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskCustomNotification = nullptr;
 
         if (!(taskCustomNotification = _pNotification.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
         {

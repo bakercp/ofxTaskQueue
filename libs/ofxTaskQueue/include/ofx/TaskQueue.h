@@ -80,7 +80,7 @@ namespace ofx {
 /// events that extend BaseTaskEventArgs (just as TaskDataEventArgs currently
 /// does), users can handle an unlimited number of custom data types.
 ///
-/// \tparam DataType defines the custom data type to be sent with notifications.
+/// \tparam TaskHandle defines the custom data type to be sent with notifications.
 template<typename TaskHandle>
 class TaskQueue_
 {
