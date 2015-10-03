@@ -139,7 +139,7 @@ public:
 
     /// \brief Waits for all active threads in the thread pool to complete.
     ///
-    /// joinAll() will wait for ALL tasks in the TaskQueu's Poco::ThreadPool to
+    /// joinAll() will wait for ALL tasks in the TaskQueue's Poco::ThreadPool to
     /// complete. If the Poco::ThreadPool has threads created by other
     /// facilities, these threads must also complete before joinAll() can
     /// return.
