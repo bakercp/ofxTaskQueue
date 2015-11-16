@@ -25,6 +25,7 @@
 
 #define NOMINMAX
 
+
 #include "SimpleCountingTask.h"
 #include "Poco/TaskNotification.h"
 #include "ofUtils.h"
