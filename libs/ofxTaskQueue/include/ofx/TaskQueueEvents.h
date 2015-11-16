@@ -37,6 +37,7 @@ namespace ofx {
 
 
 /// \brief A base class for Task events.
+/// \tparam The data type for the task handle.
 template<typename TaskHandle>
 class TaskQueueEventArgs_: public ofEventArgs
 {
