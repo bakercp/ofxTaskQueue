@@ -29,7 +29,6 @@
 #include "Poco/Exception.h"
 #include "Poco/TaskNotification.h"
 #include "Poco/Task.h"
-#include "Poco/UUID.h"
 #include "ofEvents.h"
 #include "ofTypes.h"
 
