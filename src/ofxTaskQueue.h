@@ -23,6 +23,9 @@
 // =============================================================================
 
 
+#pragma once
+
+
 #include "Poco/Observer.h"
 #include "Poco/Task.h"
 #include "Poco/TaskManager.h"
