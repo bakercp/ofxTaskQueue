@@ -1,6 +1,6 @@
 // =============================================================================
 //
-// Copyright (c) 2014 Christopher Baker <http://christopherbaker.net>
+// Copyright (c) 2014-2015 Christopher Baker <http://christopherbaker.net>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -94,7 +94,7 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
 
     ofNoFill();
     ofSetColor(255, 80);
-    ofRect(0, 0, width, height);
+    ofDrawRectangle(0, 0, width, height);
 
     ofFill();
 
@@ -117,13 +117,13 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
     }
 
     // Background rectangle.
-    ofRect(0, 0, width, height);
+    ofDrawRectangle(0, 0, width, height);
 
     if (progress > 0)
     {
         ofFill();
         ofSetColor(255, 255, 0, 75 * fader);
-        ofRect(0, 0, progress * width, height);
+        ofDrawRectangle(0, 0, progress * width, height);
     }
 
     ofSetColor(255, 255 * fader);

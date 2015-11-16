@@ -1,6 +1,6 @@
 // =============================================================================
 //
-// Copyright (c) 2014 Christopher Baker <http://christopherbaker.net>
+// Copyright (c) 2014-2015 Christopher Baker <http://christopherbaker.net>
 //
 // Permission is hereby granted, free of charge, to any person obtaining a copy
 // of this software and associated documentation files (the "Software"), to deal
@@ -33,7 +33,6 @@
 #include "Poco/Task.h"
 #include "Poco/TaskManager.h"
 #include "Poco/ThreadPool.h"
-#include "Poco/UUID.h"
 #include "Poco/UUIDGenerator.h"
 #include "Poco/Version.h"
 #include "ofEvents.h"
@@ -80,7 +79,7 @@ namespace ofx {
 /// events that extend BaseTaskEventArgs (just as TaskDataEventArgs currently
 /// does), users can handle an unlimited number of custom data types.
 ///
-/// \tparam DataType defines the custom data type to be sent with notifications.
+/// \tparam TaskHandle defines the custom data type to be sent with notifications.
 template<typename TaskHandle>
 class TaskQueue_
 {
@@ -139,7 +138,7 @@ public:
 
     /// \brief Waits for all active threads in the thread pool to complete.
     ///
-    /// joinAll() will wait for ALL tasks in the TaskQueu's Poco::ThreadPool to
+    /// joinAll() will wait for ALL tasks in the TaskQueue's Poco::ThreadPool to
     /// complete. If the Poco::ThreadPool has threads created by other
     /// facilities, these threads must also complete before joinAll() can
     /// return.
