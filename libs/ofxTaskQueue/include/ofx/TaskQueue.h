@@ -33,7 +33,6 @@
 #include "Poco/Task.h"
 #include "Poco/TaskManager.h"
 #include "Poco/ThreadPool.h"
-#include "Poco/UUID.h"
 #include "Poco/UUIDGenerator.h"
 #include "Poco/Version.h"
 #include "ofEvents.h"
