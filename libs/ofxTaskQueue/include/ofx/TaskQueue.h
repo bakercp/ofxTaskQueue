@@ -91,7 +91,7 @@ public:
 	typedef std::list<TaskPtr> TaskList;
 
     /// \breif A typedef for task progress information.
-    typedef std::map<TaskHandle, TaskProgressEventArgs_<TaskHandle> > ProgressMap;
+    typedef std::map<TaskHandle, TaskProgressEventArgs_<TaskHandle>> ProgressMap;
 
     /// \brief Create a TaskQueue using the default ThreadPool.
     ///
@@ -208,28 +208,28 @@ public:
     void unregisterTaskProgressEvents(ListenerClass* listener);
 
     /// \brief Event called when the Task is Queued.
-    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskQueued;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle>> onTaskQueued;
 
     /// \brief Event called when the Task is started.
-    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskStarted;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle>> onTaskStarted;
 
     /// \brief Event called when the Task is cancelled.
-    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskCancelled;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle>> onTaskCancelled;
 
     /// \brief Event called when the Task is finished.
-    ofEvent<const TaskQueueEventArgs_<TaskHandle> > onTaskFinished;
+    ofEvent<const TaskQueueEventArgs_<TaskHandle>> onTaskFinished;
 
     /// \brief Event called when the Task failed.
-    ofEvent<const TaskFailedEventArgs_<TaskHandle> > onTaskFailed;
+    ofEvent<const TaskFailedEventArgs_<TaskHandle>> onTaskFailed;
 
     /// \brief Event called when the Task reports its progress.
-    ofEvent<const TaskProgressEventArgs_<TaskHandle> > onTaskProgress;
+    ofEvent<const TaskProgressEventArgs_<TaskHandle>> onTaskProgress;
 
     /// \brief Event called when the Task sends an unhandled notification.
     ///
     /// To make best use of this event, subclasses should override
     /// handleTaskCustomNotification() and package the data for a custom event.
-    ofEvent<const TaskCustomNotificationEventArgs_<TaskHandle> > onTaskCustomNotification;
+    ofEvent<const TaskCustomNotificationEventArgs_<TaskHandle>> onTaskCustomNotification;
 
     enum
     {

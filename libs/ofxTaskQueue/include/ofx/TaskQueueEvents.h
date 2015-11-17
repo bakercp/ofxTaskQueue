@@ -259,9 +259,9 @@ public:
     template<typename DataType>
     bool extract(DataType& data) const
     {
-        Poco::AutoPtr<Poco::TaskCustomNotification<DataType> > taskCustomNotification = nullptr;
+        Poco::AutoPtr<Poco::TaskCustomNotification<DataType>> taskCustomNotification = nullptr;
 
-        if (!(taskCustomNotification = _pNotification.cast<Poco::TaskCustomNotification<DataType> >()).isNull())
+        if (!(taskCustomNotification = _pNotification.cast<Poco::TaskCustomNotification<DataType>>()).isNull())
         {
             data = taskCustomNotification->custom();
             return true;
