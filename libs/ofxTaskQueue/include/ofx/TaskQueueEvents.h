@@ -38,7 +38,7 @@ namespace ofx {
 
 /// \brief A base class for Task events.
 /// \tparam The data type for the task handle.
-template<typename TaskHandle>
+template <typename TaskHandle>
 class TaskQueueEventArgs_: public ofEventArgs
 {
 public:
@@ -102,7 +102,7 @@ protected:
 
 
 /// \brief Event arguments for a Task failure event.
-template<typename TaskHandle>
+template <typename TaskHandle>
 class TaskFailedEventArgs_: public TaskQueueEventArgs_<TaskHandle>
 {
 public:
@@ -139,7 +139,7 @@ private:
 
 
 /// \brief Event arguments for a Task progress event.
-template<typename TaskHandle>
+template <typename TaskHandle>
 class TaskProgressEventArgs_: public TaskQueueEventArgs_<TaskHandle>
 {
 public:
@@ -186,7 +186,7 @@ protected:
 ///
 /// \tparam TaskHandle The task handle type.
 /// \tparam DataType The custom event data type.
-template<typename TaskHandle, typename DataType>
+template <typename TaskHandle, typename DataType>
 class TaskDataEventArgs_: public TaskProgressEventArgs_<TaskHandle>
 {
 public:
@@ -222,7 +222,7 @@ protected:
 };
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 class TaskCustomNotificationEventArgs_: public TaskProgressEventArgs_<TaskHandle>
 {
 public:
@@ -256,7 +256,7 @@ public:
     /// \brief A shortcut for extracting a copy of the data.
     ///
     /// To avoid copying the data, a custom data event must be generated.
-    template<typename DataType>
+    template <typename DataType>
     bool extract(DataType& data) const
     {
         Poco::AutoPtr<Poco::TaskCustomNotification<DataType>> taskCustomNotification = nullptr;

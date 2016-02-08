@@ -80,7 +80,7 @@ namespace ofx {
 /// does), users can handle an unlimited number of custom data types.
 ///
 /// \tparam TaskHandle defines the custom data type to be sent with notifications.
-template<typename TaskHandle>
+template <typename TaskHandle>
 class TaskQueue_
 {
 public:
@@ -198,14 +198,18 @@ public:
     /// \brief Register event listeners.
     /// \tparam ListenerClass The class type with the required callback methods.
     /// \param listener a pointer to the listening class (usually "this").
-    template<class ListenerClass>
-    void registerTaskProgressEvents(ListenerClass* listener);
+    /// \param priority the listener priority.
+    template <class ListenerClass>
+    void registerTaskProgressEvents(ListenerClass* listener,
+                                    int priority = OF_EVENT_ORDER_AFTER_APP);
 
     /// \brief Unregister event listeners.
     /// \tparam ListenerClass The class type with the required callback methods.
     /// \param listener a pointer to the listening class (usually "this").
-    template<class ListenerClass>
-    void unregisterTaskProgressEvents(ListenerClass* listener);
+    /// \param priority the listener priority.
+    template <class ListenerClass>
+    void unregisterTaskProgressEvents(ListenerClass* listener,
+                                      int priority = OF_EVENT_ORDER_AFTER_APP);
 
     /// \brief Event called when the Task is Queued.
     ofEvent<const TaskQueueEventArgs_<TaskHandle>> onTaskQueued;
@@ -329,7 +333,7 @@ protected:
 };
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks):
     _maximumTasks(maximumTasks),
     _taskManager(Poco::ThreadPool::defaultPool())
@@ -345,7 +349,7 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks):
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
                                    Poco::ThreadPool& pool):
     _maximumTasks(maximumTasks),
@@ -359,7 +363,7 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 TaskQueue_<TaskHandle>::~TaskQueue_()
 {
     // Remove the ofEvent().update listener.
@@ -376,7 +380,7 @@ TaskQueue_<TaskHandle>::~TaskQueue_()
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::update(ofEventArgs& args)
 {
     // Sort the queue.
@@ -428,7 +432,7 @@ void TaskQueue_<TaskHandle>::update(ofEventArgs& args)
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, TaskPtr pAutoTask)
 {
 //    // Take ownership immediately.
@@ -466,7 +470,7 @@ TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, TaskPtr pAuto
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::cancel(TaskPtr taskPtr)
 {
     if (!taskPtr.isNull())
@@ -500,7 +504,7 @@ void TaskQueue_<TaskHandle>::cancel(TaskPtr taskPtr)
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::cancel(const TaskHandle& taskID)
 {
     TaskPtr taskPtr = getTaskPtr(taskID);
@@ -516,7 +520,7 @@ void TaskQueue_<TaskHandle>::cancel(const TaskHandle& taskID)
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::cancelQueued()
 {
     // Try to start any queued tasks.
@@ -539,7 +543,7 @@ void TaskQueue_<TaskHandle>::cancelQueued()
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::cancelAll()
 {
     // Cancel all active tasks.
@@ -549,21 +553,21 @@ void TaskQueue_<TaskHandle>::cancelAll()
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 bool TaskQueue_<TaskHandle>::exists(TaskPtr pTask) const
 {
     return _taskIDMap.find(pTask) != _taskIDMap.end();
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 bool TaskQueue_<TaskHandle>::exists(const TaskHandle& taskID) const
 {
     return _IDTaskMap.find(taskID) != _IDTaskMap.end();
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::onNotification(const TaskNotificationPtr& pNf)
 {
     // .enqueueNotification takes ownership of the pointer, so it is not
@@ -572,7 +576,7 @@ void TaskQueue_<TaskHandle>::onNotification(const TaskNotificationPtr& pNf)
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::handleTaskCustomNotification(const TaskHandle& taskID,
                                                           TaskNotificationPtr pNotification)
 {
@@ -588,7 +592,7 @@ void TaskQueue_<TaskHandle>::handleTaskCustomNotification(const TaskHandle& task
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotification)
 {
     TaskNotificationPtr pTaskNotification = pNotification.cast<Poco::TaskNotification>();
@@ -689,7 +693,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 TaskHandle TaskQueue_<TaskHandle>::getTaskId(const TaskPtr& pNf) const
 {
     typename TaskIDMap::const_iterator iter = _taskIDMap.find(pNf);
@@ -705,56 +709,56 @@ TaskHandle TaskQueue_<TaskHandle>::getTaskId(const TaskPtr& pNf) const
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::joinAll()
 {
     _taskManager.joinAll();
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 std::size_t TaskQueue_<TaskHandle>::getActiveCount() const
 {
     return _taskManager.count();
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 std::size_t TaskQueue_<TaskHandle>::getQueuedCount() const
 {
     return _queuedTasks.size();
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 std::size_t TaskQueue_<TaskHandle>::getCount() const
 {
     return _taskManager.count() + _queuedTasks.size();
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 const typename TaskQueue_<TaskHandle>::ProgressMap& TaskQueue_<TaskHandle>::getTaskProgress() const
 {
     return _IDTaskProgressMap;
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 int TaskQueue_<TaskHandle>::getMaximumTasks() const
 {
     return _maximumTasks;
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 void TaskQueue_<TaskHandle>::setMaximumTasks(int maximumTasks)
 {
     _maximumTasks = maximumTasks;
 }
 
 
-template<typename TaskHandle>
+template <typename TaskHandle>
 typename TaskQueue_<TaskHandle>::TaskPtr TaskQueue_<TaskHandle>::getTaskPtr(const TaskHandle& taskID) const
 {
     typename IDTaskMap::const_iterator iter = _IDTaskMap.find(taskID);
@@ -770,29 +774,29 @@ typename TaskQueue_<TaskHandle>::TaskPtr TaskQueue_<TaskHandle>::getTaskPtr(cons
 }
 
 
-template<typename TaskHandle>
-template<typename ListenerClass>
-void TaskQueue_<TaskHandle>::registerTaskProgressEvents(ListenerClass* listener)
+template <typename TaskHandle>
+template <typename ListenerClass>
+void TaskQueue_<TaskHandle>::registerTaskProgressEvents(ListenerClass* listener, int priority)
 {
-    ofAddListener(onTaskQueued, listener, &ListenerClass::onTaskQueued);
-    ofAddListener(onTaskStarted, listener, &ListenerClass::onTaskStarted);
-    ofAddListener(onTaskCancelled, listener, &ListenerClass::onTaskCancelled);
-    ofAddListener(onTaskFinished, listener, &ListenerClass::onTaskFinished);
-    ofAddListener(onTaskFailed, listener, &ListenerClass::onTaskFailed);
-    ofAddListener(onTaskProgress, listener, &ListenerClass::onTaskProgress);
+    ofAddListener(onTaskQueued, listener, &ListenerClass::onTaskQueued, priority);
+    ofAddListener(onTaskStarted, listener, &ListenerClass::onTaskStarted, priority);
+    ofAddListener(onTaskCancelled, listener, &ListenerClass::onTaskCancelled, priority);
+    ofAddListener(onTaskFinished, listener, &ListenerClass::onTaskFinished, priority);
+    ofAddListener(onTaskFailed, listener, &ListenerClass::onTaskFailed, priority);
+    ofAddListener(onTaskProgress, listener, &ListenerClass::onTaskProgress, priority);
 }
 
 
-template<typename TaskHandle>
-template<typename ListenerClass>
-void TaskQueue_<TaskHandle>::unregisterTaskProgressEvents(ListenerClass* listener)
+template <typename TaskHandle>
+template <typename ListenerClass>
+void TaskQueue_<TaskHandle>::unregisterTaskProgressEvents(ListenerClass* listener, int priority)
 {
-    ofRemoveListener(onTaskQueued, listener, &ListenerClass::onTaskQueued);
-    ofRemoveListener(onTaskStarted, listener, &ListenerClass::onTaskStarted);
-    ofRemoveListener(onTaskCancelled, listener, &ListenerClass::onTaskCancelled);
-    ofRemoveListener(onTaskFinished, listener, &ListenerClass::onTaskFinished);
-    ofRemoveListener(onTaskFailed, listener, &ListenerClass::onTaskFailed);
-    ofRemoveListener(onTaskProgress, listener, &ListenerClass::onTaskProgress);
+    ofRemoveListener(onTaskQueued, listener, &ListenerClass::onTaskQueued, priority);
+    ofRemoveListener(onTaskStarted, listener, &ListenerClass::onTaskStarted, priority);
+    ofRemoveListener(onTaskCancelled, listener, &ListenerClass::onTaskCancelled, priority);
+    ofRemoveListener(onTaskFinished, listener, &ListenerClass::onTaskFinished, priority);
+    ofRemoveListener(onTaskFailed, listener, &ListenerClass::onTaskFailed, priority);
+    ofRemoveListener(onTaskProgress, listener, &ListenerClass::onTaskProgress, priority);
 }
 
 
