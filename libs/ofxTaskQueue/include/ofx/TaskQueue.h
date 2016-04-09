@@ -303,8 +303,10 @@ protected:
 
     void onNotification(const TaskNotificationPtr& pNf);
 
+#if !defined(TARGET_LINUX)
     /// \brief Update listener.
     ofEventListener _updateListener;
+#endif
 
     /// \brief The maximum number of simultaneous tasks.
     ///
@@ -349,9 +351,16 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
     _maximumTasks(maximumTasks),
     _taskManager(pool)
 {
+#if defined(TARGET_LINUX)
+    ofAddListener(ofEvents().update,
+                  this,
+                  &TaskQueue_<TaskHandle>::update,
+                  OF_EVENT_ORDER_APP);
+#else
     _updateListener = ofEvents().update.newListener(this,
                                                     &TaskQueue_<TaskHandle>::update,
                                                     OF_EVENT_ORDER_APP);
+#endif
 
     // Add this class as a TaskManager notification observer.
     _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<TaskHandle>::onNotification));
@@ -361,6 +370,11 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
 template <typename TaskHandle>
 TaskQueue_<TaskHandle>::~TaskQueue_()
 {
+#if defined(TARGET_LINUX)
+    // Remove the ofEvent().update listener.
+    ofRemoveListener(ofEvents().update, this, &TaskQueue_<TaskHandle>::update, OF_EVENT_ORDER_APP);
+#endif
+
     // Cancel all tasks currently running.
     _taskManager.cancelAll();
 
