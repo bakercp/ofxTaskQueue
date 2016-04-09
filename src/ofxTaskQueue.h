@@ -30,5 +30,5 @@
 #include "Poco/Task.h"
 #include "Poco/TaskManager.h"
 #include "Poco/TaskNotification.h"
-#include "ofx/TaskQueueEvents.h"
 #include "ofx/TaskQueue.h"
+#include "ofx/TaskQueueEvents.h"

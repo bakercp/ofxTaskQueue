@@ -303,6 +303,9 @@ protected:
 
     void onNotification(const TaskNotificationPtr& pNf);
 
+    /// \brief Update listener.
+    ofEventListener _updateListener;
+
     /// \brief The maximum number of simultaneous tasks.
     ///
     /// This number may also limited by the maximum size of the thread pool.
@@ -335,17 +338,8 @@ protected:
 
 template <typename TaskHandle>
 TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks):
-    _maximumTasks(maximumTasks),
-    _taskManager(Poco::ThreadPool::defaultPool())
+    TaskQueue_<TaskHandle>(maximumTasks, Poco::ThreadPool::defaultPool())
 {
-    // Add the ofEvent().update listener.
-    ofAddListener(ofEvents().update,
-                  this,
-                  &TaskQueue_<TaskHandle>::update,
-                  OF_EVENT_ORDER_APP);
-
-    // Add this class as a TaskManager notification observer.
-    _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<TaskHandle>::onNotification));
 }
 
 
@@ -355,8 +349,9 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
     _maximumTasks(maximumTasks),
     _taskManager(pool)
 {
-    // Add the ofEvent().update listener.
-    ofAddListener(ofEvents().update, this, &TaskQueue_<TaskHandle>::update, OF_EVENT_ORDER_APP);
+    _updateListener = ofEvents().update.newListener(this,
+                                                    &TaskQueue_<TaskHandle>::update,
+                                                    OF_EVENT_ORDER_APP);
 
     // Add this class as a TaskManager notification observer.
     _taskManager.addObserver(TaskQueueObserver(*this, &TaskQueue_<TaskHandle>::onNotification));
@@ -366,9 +361,6 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
 template <typename TaskHandle>
 TaskQueue_<TaskHandle>::~TaskQueue_()
 {
-    // Remove the ofEvent().update listener.
-    ofRemoveListener(ofEvents().update, this, &TaskQueue_<TaskHandle>::update, OF_EVENT_ORDER_APP);
-
     // Cancel all tasks currently running.
     _taskManager.cancelAll();
 
