@@ -29,11 +29,80 @@
 #include "Poco/Exception.h"
 #include "Poco/TaskNotification.h"
 #include "Poco/Task.h"
+#include "ofConstants.h"
 #include "ofEvents.h"
+#include "ofThreadChannel.h"
 #include "ofTypes.h"
 
 
 namespace ofx {
+
+
+/// \brief A thread-safe event dispatch channel.
+///
+/// Events dispatched using `notifyAsync` will be queued in an ofThreadChannel
+/// until they are dispatched in the main thread on application update. This
+/// allows event arguments to cross thread boundaries without requiring users
+/// to synchronzie event callbacks that are registered with processes running
+/// in an outside thread.
+///
+/// \tparam EventArgType The event argument type.
+/// \tparam mutex The ofEvent internal mutex type.
+template<typename EventArgType, typename Mutex=std::recursive_mutex>
+class EventChannel: public ofEvent<EventArgType, Mutex>
+{
+public:
+    /// \brief Create an event channel.
+    ///
+    /// Upon construction, the event channel registers itself to receive updates
+    /// from the main thread.
+
+    EventChannel()
+    {
+#if OF_VERSION_MINOR > 9
+        _updateListener(ofEvents().update.newListener(this, &EventChannel::update))
+#else
+        ofAddListener(ofEvents().update, this, &EventChannel::update);
+#endif
+    }
+
+#if OF_VERSION_MINOR < 10
+    virtual ~EventChannel()
+    {
+        ofRemoveListener(ofEvents().update, this, &EventChannel::update);
+    }
+#endif
+
+    /// \brief This update listener dispatches events from the main thread.
+    /// \param args The update event arguments.
+    void update(ofEventArgs& args)
+    {
+        EventArgType evt;
+
+        while (_channel.tryReceive(evt))
+        {
+            // Notify the underlying ofEvent.
+            this->notify(evt);
+        }
+    }
+    
+    /// \brief Add an event to the threadsafe notification queue.
+    void notifyAsync(EventArgType& evt)
+    {
+        _channel.send(evt);
+    }
+    
+private:
+#if OF_VERSION_MINOR > 9
+    /// \brief The update listener handle.
+    ofEventListener _updateListener;
+#endif
+ 
+    /// \brief The thread channel for async events.
+    ofThreadChannel<EventArgType> _channel;
+    
+};
+
 
 
 /// \brief A base class for Task events.

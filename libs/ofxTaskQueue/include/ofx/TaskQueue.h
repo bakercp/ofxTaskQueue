@@ -35,6 +35,7 @@
 #include "Poco/ThreadPool.h"
 #include "Poco/UUIDGenerator.h"
 #include "Poco/Version.h"
+#include "ofConstants.h"
 #include "ofEvents.h"
 #include "ofx/TaskQueueEvents.h"
 #include "ofLog.h"
@@ -303,7 +304,7 @@ protected:
 
     void onNotification(const TaskNotificationPtr& pNf);
 
-#if !defined(TARGET_LINUX)
+#if OF_VERSION_MINOR > 9
     /// \brief Update listener.
     ofEventListener _updateListener;
 #endif
@@ -351,15 +352,15 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
     _maximumTasks(maximumTasks),
     _taskManager(pool)
 {
-#if defined(TARGET_LINUX)
+#if OF_VERSION_MINOR > 9
+    _updateListener = ofEvents().update.newListener(this,
+                                                    &TaskQueue_<TaskHandle>::update,
+                                                    OF_EVENT_ORDER_APP);
+#else
     ofAddListener(ofEvents().update,
                   this,
                   &TaskQueue_<TaskHandle>::update,
                   OF_EVENT_ORDER_APP);
-#else
-    _updateListener = ofEvents().update.newListener(this,
-                                                    &TaskQueue_<TaskHandle>::update,
-                                                    OF_EVENT_ORDER_APP);
 #endif
 
     // Add this class as a TaskManager notification observer.
@@ -370,7 +371,7 @@ TaskQueue_<TaskHandle>::TaskQueue_(int maximumTasks,
 template <typename TaskHandle>
 TaskQueue_<TaskHandle>::~TaskQueue_()
 {
-#if defined(TARGET_LINUX)
+#if OF_VERSION_MINOR < 10
     // Remove the ofEvent().update listener.
     ofRemoveListener(ofEvents().update, this, &TaskQueue_<TaskHandle>::update, OF_EVENT_ORDER_APP);
 #endif
