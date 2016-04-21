@@ -690,7 +690,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
         }
         catch (const Poco::NotFoundException& exc)
         {
-            ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Missing TaskId.";
+            ofLogFatalError("TaskQueue_<TaskHandle>::handleNotification") << "Missing TaskId." << " : " << exc.displayText();
         }
     }
     else
