@@ -147,7 +147,7 @@ void SimpleTaskProgress::draw(float x, float y, float width, float height)
         ss << " Error: " << errorMessage;
     }
 
-    ofDrawBitmapString(ss.str(), ofPoint(10, 14, 0));
+    ofDrawBitmapString(ss.str(), glm::vec3(10, 14, 0));
 
     ofPopMatrix();
 
