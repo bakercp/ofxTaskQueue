@@ -114,6 +114,7 @@ public:
     /// data integrity.
     ///
     /// \param pTask a raw pointer to a task to be queued.
+    /// \returns a Task handle.
     /// \throws Poco::ExistsException if the taskID already exists.
     TaskHandle start(const TaskHandle& taskID, TaskPtr pTask);
 
@@ -124,6 +125,16 @@ public:
     /// \brief Cancel a specific task by taskID.
     /// \param taskID The taskID of the Task to cancel.
     void cancel(const TaskHandle& taskID);
+
+    /// \brief Cancel a specific queued task by pointer.
+    /// \param pTask The task pointer of the Task to cancel.
+    /// \returns true if the queued task was canceled.
+    void cancelQueued(TaskPtr pTask);
+
+    /// \brief Cancel a specific queued task by id.
+    /// \param taskID The taskID of the Task to cancel.
+    /// \returns true if the queued task was canceled.
+    bool cancelQueued(const TaskHandle& taskID);
 
     /// \brief Cancel all tasks that have not yet started.
     void cancelQueued();
@@ -522,7 +533,7 @@ void TaskQueue_<TaskHandle>::cancel(const TaskHandle& taskID)
     }
     else
     {
-        ofLogFatalError("TaskQueue_<TaskHandle>::cancel") << "Unknown taskID: " << taskID;
+        ofLogError("TaskQueue_<TaskHandle>::cancel") << "Unknown taskID: " << taskID;
     }
 }
 
@@ -546,6 +557,46 @@ void TaskQueue_<TaskHandle>::cancelQueued()
 
         // Remove the unstarted task from the queue.
         _queuedTasks.erase(iter++);
+    }
+}
+
+
+template <typename TaskHandle>
+void TaskQueue_<TaskHandle>::cancelQueued(TaskPtr taskPtr)
+{
+    // Find the task if it is just queued.
+    TaskList::iterator iter = std::find(_queuedTasks.begin(),
+                                        _queuedTasks.end(),
+                                        taskPtr);
+
+    if (iter != _queuedTasks.end())
+    {
+        // Then simulate a callbacks sent by the TaskManager.
+
+        // First send a task cancelled notification.
+        onNotification(new Poco::TaskCancelledNotification(*iter));
+
+        /// Then send a task finished notification.
+        onNotification(new Poco::TaskFinishedNotification(*iter));
+
+        // Remove the unstarted task from the queue.
+        _queuedTasks.erase(iter);
+    }
+}
+
+
+template <typename TaskHandle>
+bool TaskQueue_<TaskHandle>::cancelQueued(const TaskHandle& taskID)
+{
+    TaskPtr taskPtr = getTaskPtr(taskID);
+
+    if (!taskPtr.isNull())
+    {
+        cancelQueued(taskPtr);
+    }
+    else
+    {
+        ofLogError("TaskQueue_<TaskHandle>::cancelQueued") << "Unknown taskID: " << taskID;
     }
 }
 
@@ -615,11 +666,11 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
             TaskHandle taskID = getTaskId(pTask);
 
             // Now determine what kind of task notification we have.
-            Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = 0;
-            Poco::AutoPtr<Poco::TaskCancelledNotification> taskCancelled = 0;
-            Poco::AutoPtr<Poco::TaskFinishedNotification> taskFinished = 0;
-            Poco::AutoPtr<Poco::TaskFailedNotification> taskFailed = 0;
-            Poco::AutoPtr<Poco::TaskProgressNotification> taskProgress = 0;
+            Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = nullptr;
+            Poco::AutoPtr<Poco::TaskCancelledNotification> taskCancelled = nullptr;
+            Poco::AutoPtr<Poco::TaskFinishedNotification> taskFinished = nullptr;
+            Poco::AutoPtr<Poco::TaskFailedNotification> taskFailed = nullptr;
+            Poco::AutoPtr<Poco::TaskProgressNotification> taskProgress = nullptr;
 
             if (!(taskStarted = pTaskNotification.cast<Poco::TaskStartedNotification>()).isNull())
             {
@@ -664,7 +715,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                                       pTaskNotification->task()->state(),
                                                       taskFailed->reason());
 
-                float progress = _IDTaskProgressMap[taskID].getProgress();
+                float progress = _IDTaskProgressMap[taskID].progress();
 
                 _IDTaskProgressMap[taskID] = TaskProgressEventArgs_<TaskHandle>(taskID,
                                                                                 pTask->name(),

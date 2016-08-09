@@ -60,7 +60,7 @@ public:
     EventChannel()
     {
 #if OF_VERSION_MINOR > 9
-        _updateListener(ofEvents().update.newListener(this, &EventChannel::update))
+        _updateListener(ofEvents().update.newListener(this, &EventChannel::update));
 #else
         ofAddListener(ofEvents().update, this, &EventChannel::update);
 #endif
@@ -138,21 +138,21 @@ public:
 
     /// \brief Get the task id.
     /// \returns the task id.
-    const TaskHandle& getTaskId() const
+    const TaskHandle& taskId() const
     {
         return _taskID;
     }
 
     /// \brief Get the task name.
     /// \returns the task name.
-    const std::string& getTaskName() const
+    const std::string& taskName() const
     {
         return _taskName;
     }
 
     /// \brief Get the State of the task.
     /// \returns the State of the task.
-    Poco::Task::TaskState getState() const
+    Poco::Task::TaskState state() const
     {
         return _state;
     }
@@ -239,7 +239,7 @@ public:
 
     /// \brief Get the current progress.
     /// \returns The current progress (0.0 - 1.0).
-    float getProgress() const
+    float progress() const
     {
         return _progress;
     }
@@ -279,7 +279,7 @@ public:
 
     /// \brief Get the custom data type.
     /// \returns the custom data.
-    const DataType& getData() const
+    const DataType& data() const
     {
         return _data;
     }
@@ -317,7 +317,7 @@ public:
 
     /// \brief Get the custom task notification.
     /// \returns the custom task notification.
-    Poco::Notification::Ptr getNotification() const
+    Poco::Notification::Ptr notification() const
     {
         return _pNotification;
     }
