@@ -60,7 +60,7 @@ public:
     EventChannel()
     {
 #if OF_VERSION_MINOR > 9
-        _updateListener(ofEvents().update.newListener(this, &EventChannel::update))
+        _updateListener(ofEvents().update.newListener(this, &EventChannel::update));
 #else
         ofAddListener(ofEvents().update, this, &EventChannel::update);
 #endif
