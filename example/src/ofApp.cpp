@@ -33,7 +33,7 @@ void ofApp::setup()
 
         // The task queue will take ownership of the task,
         // so tasks can be passed like this.
-        queue.start(new SimpleCountingTask(name, 100));
+        queue.start(ofToString(i), new SimpleCountingTask(name, 100));
     }
 }
 
@@ -119,26 +119,26 @@ void ofApp::keyPressed(int key)
     }
     else if ('a')
     {
-        queue.start(new SimpleCountingTask("User manually added!", 100));
+        queue.start(ofToString(ofRandom(1)), new SimpleCountingTask("User manually added!", 100));
     }
 }
 
 
 void ofApp::onTaskQueued(const ofx::TaskQueueEventArgs& args)
 {
-    taskProgress[args.getTaskId()] = SimpleTaskProgress(args);
+    taskProgress[args.taskId()] = SimpleTaskProgress(args);
 }
 
 
 void ofApp::onTaskStarted(const ofx::TaskQueueEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
 void ofApp::onTaskCancelled(const ofx::TaskQueueEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
@@ -148,19 +148,19 @@ void ofApp::onTaskFinished(const ofx::TaskQueueEventArgs& args)
     // We do not remove the task progress here because we want to
     // keep it around and display it.  We will remove it when it
     // expires during a future update loop.
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
 void ofApp::onTaskFailed(const ofx::TaskFailedEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
 void ofApp::onTaskProgress(const ofx::TaskProgressEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
@@ -172,14 +172,14 @@ void ofApp::onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs&
 
     if (args.extract(i))
     {
-        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.getTaskId() << " with int = " << i << std::endl;
+        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.taskId() << " with int = " << i << std::endl;
     }
     else if (args.extract(message))
     {
-        taskProgress[args.getTaskId()].data = message;
+        taskProgress[args.taskId()].data = message;
     }
     else
     {
-        std::cout << "Got an unknown custom notification! Name: " << args.getNotification()->name() << std::endl;
+        std::cout << "Got an unknown custom notification! Name: " << args.notification()->name() << std::endl;
     }
 }

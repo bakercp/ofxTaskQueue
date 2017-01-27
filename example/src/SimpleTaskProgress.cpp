@@ -22,9 +22,9 @@ SimpleTaskProgress::SimpleTaskProgress():
 
 
 SimpleTaskProgress::SimpleTaskProgress(const ofx::TaskQueueEventArgs& args):
-    taskId(args.getTaskId()),
-    name(args.getTaskName()),
-    state(args.getState()),
+    taskId(args.taskId()),
+    name(args.taskName()),
+    state(args.state()),
     progress(0),
     errorMessage(""),
     data(""),
@@ -40,26 +40,26 @@ SimpleTaskProgress::~SimpleTaskProgress()
 
 void SimpleTaskProgress::update(const ofx::TaskQueueEventArgs& args)
 {
-    taskId = args.getTaskId();
-    name = args.getTaskName();
-    state = args.getState();
+    taskId = args.taskId();
+    name = args.taskName();
+    state = args.state();
 }
 
 
 void SimpleTaskProgress::update(const ofx::TaskProgressEventArgs& args)
 {
-    taskId = args.getTaskId();
-    name = args.getTaskName();
-    state = args.getState();
-    progress = args.getProgress();
+    taskId = args.taskId();
+    name = args.taskName();
+    state = args.state();
+    progress = args.progress();
 }
 
 
 void SimpleTaskProgress::update(const ofx::TaskFailedEventArgs& args)
 {
-    taskId = args.getTaskId();
-    name = args.getTaskName();
-    state = args.getState();
+    taskId = args.taskId();
+    name = args.taskName();
+    state = args.state();
     errorMessage = args.getException().displayText();
 }
 

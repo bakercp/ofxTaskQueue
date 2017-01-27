@@ -16,7 +16,7 @@ void ofApp::setup()
     for (int i = 0; i < 1000; ++i)
     {
         std::string name = "Counting Task #" + ofToString(i);
-        queue.start(new SimpleCountingTask(name, 100));
+        queue.start(ofToString(i), new SimpleCountingTask(name, 100));
     }
 }
 
@@ -49,17 +49,17 @@ void ofApp::draw()
     {
         const ofx::TaskProgressEventArgs& progressInfo = iter->second;
 
-        float progress = progressInfo.getProgress();
+        float progress = progressInfo.progress();
 
-        std::string taskId = progressInfo.getTaskId();
+        std::string taskId = progressInfo.taskId();
 
-        std::string name = progressInfo.getTaskName();
+        std::string name = progressInfo.taskName();
 
         ofColor color;
 
         std::string statusString;
 
-        switch (progressInfo.getState())
+        switch (progressInfo.state())
         {
             case Poco::Task::TASK_IDLE:
                 color = ofColor(127);
@@ -123,7 +123,7 @@ void ofApp::keyPressed(int key)
     }
     else if ('a' == key)
     {
-        queue.start(new SimpleCountingTask("User manually added!", 100));
+        queue.start(ofToString(ofRandom(1)), new SimpleCountingTask("User manually added!", 100));
     }
 }
 
