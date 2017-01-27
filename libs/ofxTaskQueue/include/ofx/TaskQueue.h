@@ -1,26 +1,8 @@
-// =============================================================================
 //
-// Copyright (c) 2014-2016 Christopher Baker <http://christopherbaker.net>
+// Copyright (c) 2014 Christopher Baker <https://christopherbaker.net>
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// SPDX-License-Identifier:	MIT
 //
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
-// =============================================================================
 
 
 #pragma once
@@ -114,16 +96,29 @@ public:
     /// data integrity.
     ///
     /// \param pTask a raw pointer to a task to be queued.
+    /// \returns a Task handle.
     /// \throws Poco::ExistsException if the taskID already exists.
     TaskHandle start(const TaskHandle& taskID, TaskPtr pTask);
 
     /// \brief Cancel a specific task by pointer.
     /// \param pTask The task pointer of the Task to cancel.
+    /// \throws Poco::NotFoundException if the task cannot be found.
     void cancel(TaskPtr pTask);
 
     /// \brief Cancel a specific task by taskID.
     /// \param taskID The taskID of the Task to cancel.
+    /// \throws Poco::NotFoundException if the task cannot be found.
     void cancel(const TaskHandle& taskID);
+
+    /// \brief Cancel a specific queued task by pointer.
+    /// \param pTask The task pointer of the Task to cancel.
+    /// \throws Poco::NotFoundException if the task cannot be found.
+    void cancelQueued(TaskPtr pTask);
+
+    /// \brief Cancel a specific queued task by id.
+    /// \param taskID The taskID of the Task to cancel.
+    /// \throws Poco::NotFoundException if the task cannot be found.
+    void cancelQueued(const TaskHandle& taskID);
 
     /// \brief Cancel all tasks that have not yet started.
     void cancelQueued();
@@ -163,6 +158,18 @@ public:
     /// \brief Get a map of task progress.
     /// \returns a Task Progress map.
     const ProgressMap& getTaskProgress() const;
+
+    /// \brief Get the task progress for a specific task by taskID.
+    /// \param taskID The taskID of the Task to query.
+    /// \throws Poco::NotFoundException if the task cannot be found.
+    /// \returns the progress from 0 (no progress) to 1 (finished).
+    float getTaskProgress(const TaskHandle& taskID) const;
+
+    /// \brief Get the task state for a specific task by taskID.
+    /// \param taskID The taskID of the Task to query.
+    /// \throws Poco::NotFoundException if the task cannot be found.
+    /// \returns the state of task.
+    Poco::Task::TaskState getTaskState(const TaskHandle& taskID) const;
 
     /// \brief Get the maximum number of tasks.
     ///
@@ -241,6 +248,23 @@ public:
         /// \brief A value describing the maximum number of tasks.
         UNLIMITED_TASKS = -1
     };
+
+    /// \brief Get a singleton instance.
+    static TaskQueue_<TaskHandle>& instance()
+    {
+        static TaskQueue_<TaskHandle> _taskQueue;
+        return _taskQueue;
+    }
+
+    std::string toString() const
+    {
+        std::stringstream ss;
+        ss << "Count: " << getCount();
+        ss << " Active: " << getActiveCount();
+        ss << " Queued: " << getQueuedCount();
+        ss << " Maximum: " << getMaximumTasks();
+        return ss.str();
+    }
 
 protected:
     typedef Poco::AutoPtr<Poco::TaskNotification> TaskNotificationPtr;
@@ -447,6 +471,9 @@ TaskHandle TaskQueue_<TaskHandle>::start(const TaskHandle& taskID, TaskPtr pAuto
 //    // Reference count should still just be 1.
 //    TaskPtr pAutoTask(pRawTask);
 
+    // TODO test.
+    // If we throw an exception, the task should be taken care of ...
+
     if (exists(taskID))
     {
         throw Poco::ExistsException("TaskID already exists");
@@ -522,7 +549,7 @@ void TaskQueue_<TaskHandle>::cancel(const TaskHandle& taskID)
     }
     else
     {
-        ofLogFatalError("TaskQueue_<TaskHandle>::cancel") << "Unknown taskID: " << taskID;
+        ofLogError("TaskQueue_<TaskHandle>::cancel") << "Unknown taskID: " << taskID;
     }
 }
 
@@ -546,6 +573,46 @@ void TaskQueue_<TaskHandle>::cancelQueued()
 
         // Remove the unstarted task from the queue.
         _queuedTasks.erase(iter++);
+    }
+}
+
+
+template <typename TaskHandle>
+void TaskQueue_<TaskHandle>::cancelQueued(TaskPtr taskPtr)
+{
+    // Find the task if it is just queued.
+    TaskList::iterator iter = std::find(_queuedTasks.begin(),
+                                        _queuedTasks.end(),
+                                        taskPtr);
+
+    if (iter != _queuedTasks.end())
+    {
+        // Then simulate a callbacks sent by the TaskManager.
+
+        // First send a task cancelled notification.
+        onNotification(new Poco::TaskCancelledNotification(*iter));
+
+        /// Then send a task finished notification.
+        onNotification(new Poco::TaskFinishedNotification(*iter));
+
+        // Remove the unstarted task from the queue.
+        _queuedTasks.erase(iter);
+    }
+}
+
+
+template <typename TaskHandle>
+void TaskQueue_<TaskHandle>::cancelQueued(const TaskHandle& taskID)
+{
+    TaskPtr taskPtr = getTaskPtr(taskID);
+
+    if (!taskPtr.isNull())
+    {
+        cancelQueued(taskPtr);
+    }
+    else
+    {
+        ofLogError("TaskQueue_<TaskHandle>::cancelQueued") << "Unknown taskID: " << taskID;
     }
 }
 
@@ -615,11 +682,11 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
             TaskHandle taskID = getTaskId(pTask);
 
             // Now determine what kind of task notification we have.
-            Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = 0;
-            Poco::AutoPtr<Poco::TaskCancelledNotification> taskCancelled = 0;
-            Poco::AutoPtr<Poco::TaskFinishedNotification> taskFinished = 0;
-            Poco::AutoPtr<Poco::TaskFailedNotification> taskFailed = 0;
-            Poco::AutoPtr<Poco::TaskProgressNotification> taskProgress = 0;
+            Poco::AutoPtr<Poco::TaskStartedNotification> taskStarted = nullptr;
+            Poco::AutoPtr<Poco::TaskCancelledNotification> taskCancelled = nullptr;
+            Poco::AutoPtr<Poco::TaskFinishedNotification> taskFinished = nullptr;
+            Poco::AutoPtr<Poco::TaskFailedNotification> taskFailed = nullptr;
+            Poco::AutoPtr<Poco::TaskProgressNotification> taskProgress = nullptr;
 
             if (!(taskStarted = pTaskNotification.cast<Poco::TaskStartedNotification>()).isNull())
             {
@@ -664,7 +731,7 @@ void TaskQueue_<TaskHandle>::handleNotification(Poco::Notification::Ptr pNotific
                                                       pTaskNotification->task()->state(),
                                                       taskFailed->reason());
 
-                float progress = _IDTaskProgressMap[taskID].getProgress();
+                float progress = _IDTaskProgressMap[taskID].progress();
 
                 _IDTaskProgressMap[taskID] = TaskProgressEventArgs_<TaskHandle>(taskID,
                                                                                 pTask->name(),
@@ -752,6 +819,40 @@ const typename TaskQueue_<TaskHandle>::ProgressMap& TaskQueue_<TaskHandle>::getT
 
 
 template <typename TaskHandle>
+float TaskQueue_<TaskHandle>::getTaskProgress(const TaskHandle& taskID) const
+{
+    auto iter = _IDTaskProgressMap.find(taskID);
+
+    if (iter != _IDTaskProgressMap.end())
+    {
+        return iter->second.progress();
+    }
+    else
+    {
+        throw Poco::NotFoundException("TaskID Not found.");
+    }
+}
+
+
+
+template <typename TaskHandle>
+Poco::Task::TaskState TaskQueue_<TaskHandle>::getTaskState(const TaskHandle& taskID) const
+{
+    auto iter = _IDTaskProgressMap.find(taskID);
+
+    if (iter != _IDTaskProgressMap.end())
+    {
+        return iter->second.state();
+    }
+    else
+    {
+        throw Poco::NotFoundException("TaskID Not found.");
+    }
+}
+
+
+
+template <typename TaskHandle>
 int TaskQueue_<TaskHandle>::getMaximumTasks() const
 {
     return _maximumTasks;
@@ -807,35 +908,38 @@ void TaskQueue_<TaskHandle>::unregisterTaskProgressEvents(ListenerClass* listene
 }
 
 
-class TaskQueue: public TaskQueue_<std::string>
-{
-public:
-    /// \brief Create a TaskQueue using the default ThreadPool.
-    ///
-    /// To modifiy the thread pool parameters, call
-    TaskQueue(int maximumTasks = TaskQueue_<std::string>::UNLIMITED_TASKS):
-        TaskQueue_<std::string>(maximumTasks)
-    {
-    }
+typedef TaskQueue_<std::string> TaskQueue;
 
-    /// \brief Create a TaskQueue using provided the default ThreadPool.
-    /// \param threadPool The backing Poco::ThreadPool.
-    TaskQueue(int maximumTasks, Poco::ThreadPool& threadPool):
-        TaskQueue_<std::string>(maximumTasks, threadPool)
-    {
-    }
-
-    /// \brief Destroy the TaskQueue.
-    virtual ~TaskQueue()
-    {
-    }
-
-    std::string start(Poco::Task* pRawTask)
-    {
-        return TaskQueue_<std::string>::start(Poco::UUIDGenerator::defaultGenerator().createOne().toString(), pRawTask);
-    }
-
-};
+//class TaskQueue: public TaskQueue_<std::string>
+//{
+//public:
+//    /// \brief Create a TaskQueue using the default ThreadPool.
+//    ///
+//    /// To modifiy the thread pool parameters, call
+//    TaskQueue(int maximumTasks = TaskQueue_<std::string>::UNLIMITED_TASKS):
+//        TaskQueue_<std::string>(maximumTasks)
+//    {
+//    }
+//
+//    /// \brief Create a TaskQueue using provided the default ThreadPool.
+//    /// \param threadPool The backing Poco::ThreadPool.
+//    TaskQueue(int maximumTasks, Poco::ThreadPool& threadPool):
+//        TaskQueue_<std::string>(maximumTasks, threadPool)
+//    {
+//    }
+//
+//    /// \brief Destroy the TaskQueue.
+//    virtual ~TaskQueue()
+//    {
+//    }
+//
+//
+////    std::string start(Poco::Task* pRawTask)
+////    {
+////        return TaskQueue_<std::string>::start(Poco::UUIDGenerator::defaultGenerator().createOne().toString(), pRawTask);
+////    }
+//
+//};
 
 
 } // namespace ofx

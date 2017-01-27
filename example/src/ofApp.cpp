@@ -1,26 +1,8 @@
-// =============================================================================
 //
-// Copyright (c) 2014-2015 Christopher Baker <http://christopherbaker.net>
+// Copyright (c) 2014 Christopher Baker <https://christopherbaker.net>
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// SPDX-License-Identifier:	MIT
 //
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
-// =============================================================================
 
 
 #include "ofApp.h"
@@ -51,7 +33,7 @@ void ofApp::setup()
 
         // The task queue will take ownership of the task,
         // so tasks can be passed like this.
-        queue.start(new SimpleCountingTask(name, 100));
+        queue.start(ofToString(i), new SimpleCountingTask(name, 100));
     }
 }
 
@@ -137,26 +119,26 @@ void ofApp::keyPressed(int key)
     }
     else if ('a')
     {
-        queue.start(new SimpleCountingTask("User manually added!", 100));
+        queue.start(ofToString(ofRandom(1)), new SimpleCountingTask("User manually added!", 100));
     }
 }
 
 
 void ofApp::onTaskQueued(const ofx::TaskQueueEventArgs& args)
 {
-    taskProgress[args.getTaskId()] = SimpleTaskProgress(args);
+    taskProgress[args.taskId()] = SimpleTaskProgress(args);
 }
 
 
 void ofApp::onTaskStarted(const ofx::TaskQueueEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
 void ofApp::onTaskCancelled(const ofx::TaskQueueEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
@@ -166,19 +148,19 @@ void ofApp::onTaskFinished(const ofx::TaskQueueEventArgs& args)
     // We do not remove the task progress here because we want to
     // keep it around and display it.  We will remove it when it
     // expires during a future update loop.
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
 void ofApp::onTaskFailed(const ofx::TaskFailedEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
 void ofApp::onTaskProgress(const ofx::TaskProgressEventArgs& args)
 {
-    taskProgress[args.getTaskId()].update(args);
+    taskProgress[args.taskId()].update(args);
 }
 
 
@@ -190,14 +172,14 @@ void ofApp::onTaskCustomNotification(const ofx::TaskCustomNotificationEventArgs&
 
     if (args.extract(i))
     {
-        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.getTaskId() << " with int = " << i << std::endl;
+        ofLogVerbose("ofApp::onTaskCustomNotification") << "Parsed a custom notification task " << args.taskId() << " with int = " << i << std::endl;
     }
     else if (args.extract(message))
     {
-        taskProgress[args.getTaskId()].data = message;
+        taskProgress[args.taskId()].data = message;
     }
     else
     {
-        std::cout << "Got an unknown custom notification! Name: " << args.getNotification()->name() << std::endl;
+        std::cout << "Got an unknown custom notification! Name: " << args.notification()->name() << std::endl;
     }
 }

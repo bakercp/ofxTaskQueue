@@ -1,26 +1,8 @@
-// =============================================================================
 //
-// Copyright (c) 2014-2015 Christopher Baker <http://christopherbaker.net>
+// Copyright (c) 2014 Christopher Baker <https://christopherbaker.net>
 //
-// Permission is hereby granted, free of charge, to any person obtaining a copy
-// of this software and associated documentation files (the "Software"), to deal
-// in the Software without restriction, including without limitation the rights
-// to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-// copies of the Software, and to permit persons to whom the Software is
-// furnished to do so, subject to the following conditions:
+// SPDX-License-Identifier:	MIT
 //
-// The above copyright notice and this permission notice shall be included in
-// all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-// OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-// THE SOFTWARE.
-//
-// =============================================================================
 
 
 #include "ofApp.h"
@@ -34,7 +16,7 @@ void ofApp::setup()
     for (int i = 0; i < 1000; ++i)
     {
         std::string name = "Counting Task #" + ofToString(i);
-        queue.start(new SimpleCountingTask(name, 100));
+        queue.start(ofToString(i), new SimpleCountingTask(name, 100));
     }
 }
 
@@ -67,17 +49,17 @@ void ofApp::draw()
     {
         const ofx::TaskProgressEventArgs& progressInfo = iter->second;
 
-        float progress = progressInfo.getProgress();
+        float progress = progressInfo.progress();
 
-        std::string taskId = progressInfo.getTaskId();
+        std::string taskId = progressInfo.taskId();
 
-        std::string name = progressInfo.getTaskName();
+        std::string name = progressInfo.taskName();
 
         ofColor color;
 
         std::string statusString;
 
-        switch (progressInfo.getState())
+        switch (progressInfo.state())
         {
             case Poco::Task::TASK_IDLE:
                 color = ofColor(127);
@@ -141,7 +123,7 @@ void ofApp::keyPressed(int key)
     }
     else if ('a' == key)
     {
-        queue.start(new SimpleCountingTask("User manually added!", 100));
+        queue.start(ofToString(ofRandom(1)), new SimpleCountingTask("User manually added!", 100));
     }
 }
 
