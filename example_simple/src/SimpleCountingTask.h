@@ -11,6 +11,7 @@
 #include "Poco/Task.h"
 #include "Poco/Notification.h"
 #include "Poco/Random.h"
+#include "ofMath.h"
 
 
 class SimpleCountingTask: public Poco::Task
