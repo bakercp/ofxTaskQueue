@@ -7,6 +7,7 @@
 
 #include "SimpleTaskProgress.h"
 #include "ofGraphics.h"
+#include "ofMath.h"
 
 
 SimpleTaskProgress::SimpleTaskProgress():
